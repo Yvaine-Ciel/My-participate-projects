@@ -2,6 +2,7 @@ package servlet;
 
 import dao.CopywritingRecordDao;
 import dao.CopywritingRecordStepDao;
+import dao.UserTagDao;
 import entity.CopywritingRecord;
 import util.AiClient;
 import util.JsonUtil;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @WebServlet("/api/copywriting/optimize")
@@ -51,13 +53,17 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
 
         AiClient aiClient = new AiClient();
         String content;
+        String promptKeywords = appendUserTags(
+                record.getKeywords(),
+                new UserTagDao().listByUserId(userId)
+        );
 
         try {
             content = aiClient.optimizeMomentCopywriting(
                     record.getScene(),
                     record.getMood(),
                     record.getStyle(),
-                    record.getKeywords(),
+                    promptKeywords,
                     record.getGeneratedContent(),
                     message
             );
@@ -92,5 +98,22 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         }
 
         return JsonUtil.getInt(request, body, "id", 0);
+    }
+
+    private String appendUserTags(String keywords, List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return keywords;
+        }
+
+        if (keywords != null && keywords.contains("用户标签")) {
+            return keywords;
+        }
+
+        String tagText = String.join("、", tags);
+        if (keywords == null || keywords.trim().isEmpty()) {
+            return "用户标签：" + tagText;
+        }
+
+        return keywords.trim() + "；用户标签：" + tagText;
     }
 }

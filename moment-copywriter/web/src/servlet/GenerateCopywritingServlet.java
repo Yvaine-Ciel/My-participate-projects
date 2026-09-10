@@ -39,7 +39,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
             return;
         }
 
-        String generatedKeywords = appendUserTags(
+        String promptKeywords = appendUserTags(
                 keywords,
                 new UserTagDao().listByUserId(userId)
         );
@@ -47,7 +47,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         String content;
 
         try {
-            content = aiClient.generateMomentCopywriting(scene, mood, style, generatedKeywords);
+            content = aiClient.generateMomentCopywriting(scene, mood, style, promptKeywords);
         } catch (IllegalStateException e) {
             writeFail(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     e.getMessage());
@@ -64,7 +64,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         record.setScene(scene);
         record.setMood(mood);
         record.setStyle(style);
-        record.setKeywords(generatedKeywords);
+        record.setKeywords(keywords);
         record.setGeneratedContent(content);
         record.setAiModel(aiClient.getModel());
 
@@ -76,7 +76,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         Map<String, Object> data = new HashMap<>();
         data.put("content", content);
         data.put("recordId", recordId);
-        data.put("keywords", generatedKeywords);
+        data.put("keywords", keywords);
         data.put("saved", recordId > 0);
         data.put("model", aiClient.getModel());
 
@@ -85,6 +85,10 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
 
     private String appendUserTags(String keywords, List<String> tags) {
         if (tags == null || tags.isEmpty()) {
+            return keywords;
+        }
+
+        if (keywords != null && keywords.contains("用户标签")) {
             return keywords;
         }
 

@@ -36,20 +36,40 @@ public class FavoriteDao {
     }
 
     public boolean remove(int userId, int recordId) {
-        if (!recordBelongsToUser(userId, recordId)) {
+        if (userId <= 0 || recordId <= 0) {
             return false;
         }
 
-        String sql = "DELETE FROM favorites WHERE user_id = ? AND record_id = ?";
+        if (!recordBelongsToUser(userId, recordId) && !exists(userId, recordId)) {
+            return false;
+        }
 
-        try (
-                Connection conn = DBUtil.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
-            ps.setInt(1, userId);
-            ps.setInt(2, recordId);
-            ps.executeUpdate();
-            return true;
+        String deleteFavoriteSql = "DELETE FROM favorites WHERE user_id = ? AND record_id = ?";
+        String deleteOrphanRecordSql = "DELETE FROM copywriting_records "
+                + "WHERE id = ? AND user_id IS NULL "
+                + "AND NOT EXISTS (SELECT 1 FROM favorites WHERE record_id = ?)";
+
+        try (Connection conn = DBUtil.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (
+                    PreparedStatement deleteFavorite = conn.prepareStatement(deleteFavoriteSql);
+                    PreparedStatement deleteOrphanRecord = conn.prepareStatement(deleteOrphanRecordSql)
+            ) {
+                deleteFavorite.setInt(1, userId);
+                deleteFavorite.setInt(2, recordId);
+                deleteFavorite.executeUpdate();
+
+                deleteOrphanRecord.setInt(1, recordId);
+                deleteOrphanRecord.setInt(2, recordId);
+                deleteOrphanRecord.executeUpdate();
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

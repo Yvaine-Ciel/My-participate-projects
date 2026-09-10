@@ -394,8 +394,19 @@
 				})
 			},
 			toggleRecordFavorite(record) {
+				if (isFavorite(record)) {
+					this.confirmRemoveFavorite(() => {
+						this.changeRecordFavorite(record)
+					})
+					return
+				}
+
+				this.changeRecordFavorite(record)
+			},
+			changeRecordFavorite(record) {
 				toggleFavorite(record).then(favorite => {
 					this.applyFavoriteState(record, favorite)
+					this.refreshFavoriteListAfterRemove(favorite)
 					uni.showToast({
 						title: favorite ? '已收藏' : '已取消',
 						icon: 'none'
@@ -412,11 +423,25 @@
 					return
 				}
 
+				if (isFavorite(this.detailRecord)) {
+					this.confirmRemoveFavorite(() => {
+						this.changeDetailFavorite()
+					})
+					return
+				}
+
+				this.changeDetailFavorite()
+			},
+			changeDetailFavorite() {
 				toggleFavorite(this.detailRecord).then(favorite => {
 					this.applyFavoriteState(this.detailRecord, favorite)
 					this.detailRecord = Object.assign({}, this.detailRecord, {
 						favorite
 					})
+					this.refreshFavoriteListAfterRemove(favorite)
+					if (!favorite && this.onlyFavorites) {
+						this.closeDetail()
+					}
 					uni.showToast({
 						title: favorite ? '已收藏' : '已取消',
 						icon: 'none'
@@ -427,6 +452,24 @@
 						icon: 'none'
 					})
 				})
+			},
+			confirmRemoveFavorite(onConfirm) {
+				uni.showModal({
+					title: '取消收藏',
+					content: '确定取消收藏这条文案吗？',
+					success: res => {
+						if (res.confirm) {
+							onConfirm()
+						}
+					}
+				})
+			},
+			refreshFavoriteListAfterRemove(favorite) {
+				if (favorite || !this.onlyFavorites) {
+					return
+				}
+
+				this.refreshFavorites().catch(() => {})
 			},
 			applyFavoriteState(record, favorite) {
 				const id = record && record.id

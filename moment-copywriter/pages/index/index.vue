@@ -3,7 +3,7 @@
 		<view class="top-space"></view>
 
 		<view class="title-wrap">
-			<text class="main-title">AI文案生成器</text>
+			<text class="main-title">文案生成</text>
 		</view>
 
 		<scroll-view class="category-scroll" scroll-x>
@@ -333,6 +333,16 @@
 					return
 				}
 
+				if (this.favorite) {
+					this.confirmRemoveFavorite(() => {
+						this.changeCurrentFavorite()
+					})
+					return
+				}
+
+				this.changeCurrentFavorite()
+			},
+			changeCurrentFavorite() {
 				toggleFavorite(Object.assign({}, this.currentRecord, {
 					favorite: this.favorite
 				})).then(favorite => {
@@ -351,6 +361,17 @@
 						title: String(message),
 						icon: 'none'
 					})
+				})
+			},
+			confirmRemoveFavorite(onConfirm) {
+				uni.showModal({
+					title: '取消收藏',
+					content: '确定取消收藏这条文案吗？',
+					success: res => {
+						if (res.confirm) {
+							onConfirm()
+						}
+					}
 				})
 			},
 			useExample(item) {
@@ -387,12 +408,7 @@
 				return parts.filter(Boolean).join('；')
 			},
 			buildDisplayKeywords(scene) {
-				const keywords = this.buildGenerateKeywords(scene)
-				if (!this.userTags.length) {
-					return keywords
-				}
-
-				return keywords + '；用户标签：' + this.userTags.join('、')
+				return this.buildGenerateKeywords(scene)
 			},
 			currentTimeContext() {
 				const now = new Date()
@@ -506,9 +522,9 @@
 
 				if (this.category === '朋友圈文案') {
 					return [
-						time.label + '，记录' + profile.daily + '，适合' + profile.identity + '发朋友圈',
+						time.label + '，记录' + profile.daily + '，写得自然一点',
 						time.season + '里的一个小瞬间，写得自然一点',
-						'结合我的标签' + this.userTagText() + '，写一条今天适合发的朋友圈'
+						'今天适合发的朋友圈，真诚自然，不夸张'
 					]
 				}
 
@@ -516,16 +532,16 @@
 					const festival = time.festival
 					const blessingTheme = festival ? festival + '祝福' : time.label + '适合发送的日常祝福'
 					return [
-						'给' + profile.blessingTarget + '的' + blessingTheme + '，符合' + profile.identity + '身份',
-						'结合我的标签' + this.userTagText() + '，写一段不过时的祝福',
+						'给' + profile.blessingTarget + '的' + blessingTheme + '，温柔简短',
+						'写一段不过时的祝福，真诚自然',
 						time.season + '里给重要的人一段温柔祝福'
 					]
 				}
 
 				if (this.category === '自我介绍') {
 					return [
-						profile.intro + '自我介绍，突出我的标签' + this.userTagText(),
-						'结合' + profile.identity + '身份，写一段真诚自然的自我介绍',
+						profile.intro + '自我介绍，真诚自然',
+						'新场合里的自我介绍，礼貌自然，不生硬',
 						'适合今天使用的简短自我介绍，不夸张'
 					]
 				}
@@ -533,7 +549,7 @@
 				if (this.category === '演讲稿') {
 					return [
 						profile.speech + '，结合' + time.label + '，三分钟',
-						'围绕我的标签' + this.userTagText() + '，写一段积极诚恳的演讲',
+						'写一段积极诚恳的演讲开场',
 						time.season + '主题分享，语气自然有感染力'
 					]
 				}
@@ -541,19 +557,16 @@
 				if (this.category === '短视频配文') {
 					return [
 						profile.video + '，结合' + time.label + '，轻松自然',
-						'根据我的标签' + this.userTagText() + '，写一条短视频配文',
+						'写一条日常感短视频配文',
 						time.season + '氛围的日常 vlog 配文'
 					]
 				}
 
 				return [
 					profile.healing + '，结合' + time.label,
-					'根据我的标签' + this.userTagText() + '，写一句温柔短句',
+					'写一句温柔短句，给今天一点鼓励',
 					time.season + '适合收藏的治愈短句'
 				]
-			},
-			userTagText() {
-				return this.userTags.length ? '：' + this.userTags.join('、') : '和当前身份'
 			}
 		}
 	}

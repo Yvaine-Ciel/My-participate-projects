@@ -169,21 +169,47 @@ public class CopywritingRecordDao {
             return 0;
         }
 
-        String deleteFavoriteSql = "DELETE FROM favorites WHERE user_id = ?";
-        String deleteRecordSql = "DELETE FROM copywriting_records WHERE user_id = ?";
+        String countHistorySql = "SELECT COUNT(1) FROM copywriting_records WHERE user_id = ?";
+        String deleteStepsSql = "DELETE s FROM copywriting_record_steps s "
+                + "INNER JOIN copywriting_records r ON s.record_id = r.id "
+                + "WHERE r.user_id = ?";
+        String deleteRecordSql = "DELETE r FROM copywriting_records r "
+                + "WHERE r.user_id = ? AND NOT EXISTS ("
+                + "SELECT 1 FROM favorites f WHERE f.record_id = r.id AND f.user_id = ?"
+                + ")";
+        String keepFavoriteRecordSql = "UPDATE r SET r.user_id = NULL "
+                + "FROM copywriting_records r "
+                + "WHERE r.user_id = ? AND EXISTS ("
+                + "SELECT 1 FROM favorites f WHERE f.record_id = r.id AND f.user_id = ?"
+                + ")";
 
         try (Connection conn = DBUtil.getConnection()) {
             conn.setAutoCommit(false);
 
             try (
-                    PreparedStatement deleteFavorite = conn.prepareStatement(deleteFavoriteSql);
-                    PreparedStatement deleteRecord = conn.prepareStatement(deleteRecordSql)
+                    PreparedStatement countHistory = conn.prepareStatement(countHistorySql);
+                    PreparedStatement deleteSteps = conn.prepareStatement(deleteStepsSql);
+                    PreparedStatement deleteRecord = conn.prepareStatement(deleteRecordSql);
+                    PreparedStatement keepFavoriteRecord = conn.prepareStatement(keepFavoriteRecordSql)
             ) {
-                deleteFavorite.setInt(1, userId);
-                deleteFavorite.executeUpdate();
+                int deletedCount = 0;
+                countHistory.setInt(1, userId);
+                try (ResultSet rs = countHistory.executeQuery()) {
+                    if (rs.next()) {
+                        deletedCount = rs.getInt(1);
+                    }
+                }
+
+                deleteSteps.setInt(1, userId);
+                deleteSteps.executeUpdate();
 
                 deleteRecord.setInt(1, userId);
-                int deletedCount = deleteRecord.executeUpdate();
+                deleteRecord.setInt(2, userId);
+                deleteRecord.executeUpdate();
+
+                keepFavoriteRecord.setInt(1, userId);
+                keepFavoriteRecord.setInt(2, userId);
+                keepFavoriteRecord.executeUpdate();
 
                 conn.commit();
                 return deletedCount;
