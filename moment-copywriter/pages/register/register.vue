@@ -23,7 +23,7 @@
 					v-model="phone"
 					placeholder="请输入手机号"
 					type="number"
-					maxlength="20"
+					maxlength="11"
 				/>
 			</view>
 
@@ -80,9 +80,17 @@
 		},
 		methods: {
 			register() {
-				if (!this.username.trim() || !this.password.trim()) {
+				if (!this.username.trim() || !this.phone.trim() || !this.password.trim()) {
 					uni.showToast({
-						title: '请输入用户名和密码',
+						title: '请输入用户名、手机号和密码',
+						icon: 'none'
+					})
+					return
+				}
+
+				if (!/^1[3-9]\d{9}$/.test(this.phone.trim())) {
+					uni.showToast({
+						title: '请输入正确的11位手机号',
 						icon: 'none'
 					})
 					return
@@ -98,9 +106,9 @@
 
 				this.loading = true
 				post('/api/register', {
-					username: this.username,
+					username: this.username.trim(),
 					password: this.password,
-					phone: this.phone
+					phone: this.phone.trim()
 				}, {
 					auth: false
 				}).then(() => {

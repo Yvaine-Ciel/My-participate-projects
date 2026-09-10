@@ -20,19 +20,19 @@ public class LoginServlet extends BaseApiServlet {
             HttpServletResponse response
     ) throws IOException {
         Map<String, Object> body = readBody(request);
-        String username = JsonUtil.getString(request, body, "username");
+        String phone = JsonUtil.getString(request, body, "phone");
         String password = JsonUtil.getString(request, body, "password");
 
-        if (username == null || password == null) {
+        if (phone == null || password == null) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "username and password are required");
+                    "phone and password are required");
             return;
         }
 
-        User user = new UserDao().login(username, password);
+        User user = new UserDao().login(phone, password);
         if (user == null) {
             writeFail(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid username or password");
+                    "Invalid phone or password");
             return;
         }
 

@@ -22,9 +22,15 @@ public class RegisterServlet extends BaseApiServlet {
         String password = JsonUtil.getString(request, body, "password");
         String phone = JsonUtil.getString(request, body, "phone");
 
-        if (username == null || password == null) {
+        if (username == null || password == null || phone == null) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "username and password are required");
+                    "用户名、手机号和密码不能为空");
+            return;
+        }
+
+        if (!phone.matches("^1[3-9]\\d{9}$")) {
+            writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
+                    "请输入正确的11位手机号");
             return;
         }
 
@@ -33,7 +39,7 @@ public class RegisterServlet extends BaseApiServlet {
 
         if (!success) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "Register failed. The username may already exist.");
+                    "用户名或手机号已存在");
             return;
         }
 

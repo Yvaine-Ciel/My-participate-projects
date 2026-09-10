@@ -7,12 +7,13 @@
 
 		<view class="panel auth-panel">
 			<view class="field">
-				<text class="field-label">用户名</text>
+				<text class="field-label">手机号</text>
 				<input
 					class="input"
-					v-model="username"
-					placeholder="请输入用户名"
-					maxlength="50"
+					v-model="phone"
+					placeholder="请输入手机号"
+					type="number"
+					maxlength="20"
 				/>
 			</view>
 
@@ -50,16 +51,16 @@
 	export default {
 		data() {
 			return {
-				username: '',
+				phone: '',
 				password: '',
 				loading: false
 			}
 		},
 		methods: {
 			login() {
-				if (!this.username.trim() || !this.password.trim()) {
+				if (!this.phone.trim() || !this.password.trim()) {
 					uni.showToast({
-						title: '请输入用户名和密码',
+						title: '请输入手机号和密码',
 						icon: 'none'
 					})
 					return
@@ -67,7 +68,7 @@
 
 				this.loading = true
 				post('/api/login', {
-					username: this.username,
+					phone: this.phone,
 					password: this.password
 				}, {
 					auth: false

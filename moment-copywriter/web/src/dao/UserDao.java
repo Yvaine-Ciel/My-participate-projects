@@ -9,15 +9,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class UserDao {
-    public User login(String username, String password) {
+    public User login(String phone, String password) {
         String sql = "SELECT id, username, phone, role, create_time, "
-                + "password_hash, password_salt FROM users WHERE username = ?";
+                + "password_hash, password_salt FROM users WHERE phone = ?";
 
         try (
                 Connection conn = DBUtil.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)
         ) {
-            ps.setString(1, username);
+            ps.setString(1, phone);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -40,7 +40,7 @@ public class UserDao {
     }
 
     public boolean register(String username, String password, String phone) {
-        if (usernameExists(username)) {
+        if (usernameExists(username) || phoneExists(phone)) {
             return false;
         }
 
@@ -59,6 +59,25 @@ public class UserDao {
             ps.setString(4, phone);
 
             return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean phoneExists(String phone) {
+        String sql = "SELECT id FROM users WHERE phone = ?";
+
+        try (
+                Connection conn = DBUtil.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setString(1, phone);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

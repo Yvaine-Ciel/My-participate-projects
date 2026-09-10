@@ -34,7 +34,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "朋友圈文案生成",
+		"navigationBarTitleText": "AI文案生成器",
 		"navigationBarBackgroundColor": "#F7FAFF",
 		"backgroundColor": "#F7FAFF"
 	},
