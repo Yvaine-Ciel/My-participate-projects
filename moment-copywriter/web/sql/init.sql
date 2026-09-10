@@ -15,6 +15,23 @@ CREATE TABLE users (
 );
 GO
 
+CREATE TABLE user_tags (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    name NVARCHAR(20) NOT NULL,
+    create_time DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT fk_user_tags_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT uq_user_tags_user_name
+        UNIQUE (user_id, name)
+);
+GO
+
+CREATE INDEX idx_user_tags_user_time
+    ON user_tags(user_id, create_time ASC);
+GO
+
 CREATE TABLE copywriting_records (
     id INT IDENTITY(1,1) PRIMARY KEY,
     user_id INT NULL,

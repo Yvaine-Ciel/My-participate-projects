@@ -38,6 +38,16 @@
 
 			<view class="divider"></view>
 
+			<button class="menu-row" @tap="openTagPanel">
+				<view class="menu-icon tag-icon">
+					<text>#</text>
+				</view>
+				<text class="menu-text">标签</text>
+				<text class="menu-arrow">›</text>
+			</button>
+
+			<view class="divider"></view>
+
 			<button class="menu-row" @tap="clearHistory">
 				<view class="menu-icon note-icon">
 					<text>⌫</text>
@@ -67,6 +77,35 @@
 			</button>
 		</view>
 
+		<view v-if="tagPanelVisible" class="tag-mask" @tap="closeTagPanel">
+			<view class="tag-panel" @tap.stop>
+				<view class="tag-header">
+					<text class="tag-title">标签</text>
+					<button class="tag-close" @tap.stop="closeTagPanel">×</button>
+				</view>
+
+				<view class="tag-input-row">
+					<input
+						class="tag-input"
+						v-model="tagInput"
+						placeholder="例如：老师、学生、宝妈"
+						maxlength="12"
+						@confirm="addTag"
+					/>
+					<button class="tag-add" @tap="addTag">添加</button>
+				</view>
+
+				<view class="tag-list" v-if="userTags.length">
+					<view class="tag-item" v-for="tag in userTags" :key="tag">
+						<text>{{ tag }}</text>
+						<button class="tag-delete" @tap.stop="removeTag(tag)">×</button>
+					</view>
+				</view>
+
+				<text class="tag-empty" v-else>暂无标签</text>
+			</view>
+		</view>
+
 		<view class="login-actions" v-if="!user">
 			<button class="primary-button" @tap="goLogin">登录</button>
 			<button class="outline-button register-button" @tap="goRegister">注册</button>
@@ -78,7 +117,7 @@
 
 <script>
 	import AppTabbar from '../../components/app-tabbar/app-tabbar.vue'
-	import { post } from '../../common/request.js'
+	import { get, post } from '../../common/request.js'
 	import { clearUser, getUser, ensureLogin, loadCurrentUser } from '../../common/auth.js'
 
 	export default {
@@ -87,7 +126,10 @@
 		},
 		data() {
 			return {
-				user: null
+				user: null,
+				tagPanelVisible: false,
+				tagInput: '',
+				userTags: []
 			}
 		},
 		computed: {
@@ -97,10 +139,17 @@
 		},
 		onShow() {
 			this.user = getUser()
+			if (this.user) {
+				this.loadTags()
+			} else {
+				this.userTags = []
+			}
 			loadCurrentUser().then(user => {
 				this.user = user
+				this.loadTags()
 			}).catch(() => {
 				this.user = null
+				this.userTags = []
 			})
 		},
 		methods: {
@@ -120,6 +169,73 @@
 
 				uni.reLaunch({
 					url: '/pages/history/history'
+				})
+			},
+			openTagPanel() {
+				if (!ensureLogin()) {
+					return
+				}
+
+				this.tagPanelVisible = true
+				this.loadTags()
+			},
+			closeTagPanel() {
+				this.tagPanelVisible = false
+				this.tagInput = ''
+			},
+			loadTags() {
+				return get('/api/user-tags').then(data => {
+					this.userTags = Array.isArray(data) ? data : []
+				}).catch(message => {
+					this.userTags = []
+					if (this.tagPanelVisible) {
+						uni.showToast({
+							title: String(message),
+							icon: 'none'
+						})
+					}
+				})
+			},
+			addTag() {
+				const text = this.tagInput.trim()
+				if (!text) {
+					uni.showToast({
+						title: '请输入标签',
+						icon: 'none'
+					})
+					return
+				}
+
+				if (this.userTags.indexOf(text) !== -1) {
+					uni.showToast({
+						title: '标签已存在',
+						icon: 'none'
+					})
+					return
+				}
+
+				post('/api/user-tags/add', {
+					name: text
+				}).then(data => {
+					this.userTags = data && Array.isArray(data.tags) ? data.tags : []
+					this.tagInput = ''
+				}).catch(message => {
+					uni.showToast({
+						title: String(message),
+						icon: 'none'
+					})
+				})
+			},
+			removeTag(tag) {
+				post('/api/user-tags/delete', {
+					name: tag
+				}).then(data => {
+					this.userTags = data && Array.isArray(data.tags) ? data.tags : []
+				}).catch(message => {
+					uni.showToast({
+						title: String(message),
+						icon: 'none'
+					})
 				})
 			},
 			clearHistory() {
@@ -179,6 +295,7 @@
 			clearAndGoHome() {
 				clearUser()
 				this.user = null
+				this.userTags = []
 				uni.reLaunch({
 					url: '/pages/index/index'
 				})
@@ -328,6 +445,7 @@
 
 	.note-icon,
 	.check-icon,
+	.tag-icon,
 	.logout-icon {
 		font-size: 34rpx;
 	}
@@ -363,5 +481,123 @@
 	.register-button {
 		width: 100%;
 		margin-top: 22rpx;
+	}
+
+	.tag-mask {
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 40;
+		display: flex;
+		align-items: flex-end;
+		background: rgba(0, 0, 0, 0.38);
+	}
+
+	.tag-panel {
+		position: relative;
+		width: 100%;
+		max-height: 72vh;
+		padding: 34rpx 36rpx calc(34rpx + env(safe-area-inset-bottom));
+		border-radius: 24rpx 24rpx 0 0;
+		background: #FFFFFF;
+		box-sizing: border-box;
+	}
+
+	.tag-header {
+		display: flex;
+		align-items: center;
+		padding-right: 82rpx;
+		margin-bottom: 28rpx;
+	}
+
+	.tag-title {
+		color: #0A0A0A;
+		font-size: 38rpx;
+		font-weight: 800;
+	}
+
+	.tag-close {
+		position: absolute;
+		top: 28rpx;
+		right: 32rpx;
+		width: 58rpx;
+		height: 58rpx;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: #F2F4F7;
+		color: #333333;
+		font-size: 38rpx;
+		line-height: 1;
+	}
+
+	.tag-input-row {
+		display: flex;
+		align-items: center;
+		margin-bottom: 26rpx;
+	}
+
+	.tag-input {
+		flex: 1;
+		height: 78rpx;
+		padding: 0 22rpx;
+		border-radius: 10rpx;
+		background: #F7FAFF;
+		color: #111111;
+		font-size: 28rpx;
+	}
+
+	.tag-add {
+		width: 138rpx;
+		height: 78rpx;
+		margin-left: 18rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10rpx;
+		background: #0878F7;
+		color: #FFFFFF;
+		font-size: 28rpx;
+	}
+
+	.tag-list {
+		display: flex;
+		flex-wrap: wrap;
+	}
+
+	.tag-item {
+		min-height: 58rpx;
+		margin: 0 16rpx 16rpx 0;
+		padding: 0 12rpx 0 22rpx;
+		display: flex;
+		align-items: center;
+		border-radius: 29rpx;
+		background: #EAF3FF;
+		color: #0069E8;
+		font-size: 26rpx;
+	}
+
+	.tag-delete {
+		width: 42rpx;
+		height: 42rpx;
+		margin-left: 8rpx;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #0069E8;
+		font-size: 28rpx;
+		line-height: 1;
+	}
+
+	.tag-empty {
+		display: block;
+		color: #666666;
+		font-size: 28rpx;
 	}
 </style>

@@ -101,7 +101,7 @@
 
 <script>
 	import AppTabbar from '../../components/app-tabbar/app-tabbar.vue'
-	import { post } from '../../common/request.js'
+	import { get, post } from '../../common/request.js'
 	import { ensureLogin, isLoggedIn, loadCurrentUser } from '../../common/auth.js'
 	import { isFavorite, toggleFavorite } from '../../common/favorites.js'
 
@@ -115,63 +115,35 @@
 				scene: '',
 				result: '',
 				recordId: 0,
+				recordKeywords: '',
 				loading: false,
 				favorite: false,
 				detailRecord: null,
+				userTags: [],
 				categories: [
 					{
 						name: '朋友圈文案',
-						placeholder: '输入想发布的场景，例如：傍晚散步，晚风轻轻吹过，心情很好',
-						examples: [
-							'傍晚散步，晚风轻轻吹过，今天的心情很好',
-							'周末和朋友喝咖啡，想发一条轻松自然的朋友圈',
-							'雨后看到彩虹，想记录一下生活里的小确幸'
-						]
+						placeholder: '输入想发布的场景，例如：傍晚散步，晚风轻轻吹过，心情很好'
 					},
 					{
 						name: '节日祝福',
-						placeholder: '输入祝福对象、想要的风格，例如：给妈妈的中秋祝福，温柔简短',
-						examples: [
-							'给妈妈的中秋祝福，温柔简短',
-							'给老师的教师节祝福，真诚不夸张',
-							'给朋友的新年祝福，活泼一点'
-						]
+						placeholder: '输入祝福对象、想要的风格，例如：给朋友的节日祝福，温柔简短'
 					},
 					{
 						name: '自我介绍',
-						placeholder: '输入你的身份、特点和用途，例如：大学生社团面试，真诚自然',
-						examples: [
-							'大学生社团面试，真诚自然',
-							'求职面试一分钟自我介绍，稳重大方',
-							'新班级开学自我介绍，友好一点'
-						]
+						placeholder: '输入你的身份、特点和用途，例如：工作或学习场景，真诚自然'
 					},
 					{
 						name: '演讲稿',
-						placeholder: '输入主题、场合和时长，例如：班会分享，主题是坚持',
-						examples: [
-							'班会分享，主题是坚持，三分钟',
-							'国旗下讲话，主题是珍惜时间',
-							'竞选班干部演讲，语气积极诚恳'
-						]
+						placeholder: '输入主题、场合和时长，例如：一次分享，主题是坚持'
 					},
 					{
 						name: '短视频配文',
-						placeholder: '输入视频内容和情绪，例如：旅行 vlog，轻松治愈',
-						examples: [
-							'旅行短视频配文，轻松治愈，适合朋友圈',
-							'美食探店视频，语气轻松有吸引力',
-							'日常生活 vlog，温暖自然'
-						]
+						placeholder: '输入视频内容和情绪，例如：日常 vlog，轻松治愈'
 					},
 					{
 						name: '治愈短句',
-						placeholder: '输入情绪或关键词，例如：最近很累，想要一点鼓励',
-						examples: [
-							'最近很累，想要一点鼓励',
-							'适合睡前看的温柔短句',
-							'写给自己的治愈文案，简短有力量'
-						]
+						placeholder: '输入情绪或关键词，例如：最近很累，想要一点鼓励'
 					}
 				]
 			}
@@ -182,25 +154,28 @@
 				return current ? current.placeholder : '请输入你的需求'
 			},
 			examples() {
-				const current = this.categories.find(item => item.name === this.category)
-				return current && current.examples ? current.examples : []
+				return this.buildExamples()
 			},
 			currentRecord() {
+				const keywords = this.recordKeywords || this.buildDisplayKeywords()
 				return {
 					id: this.recordId,
 					recordId: this.recordId,
 					style: this.category,
 					scene: this.scene,
-					keywords: this.scene,
+					keywords,
 					generatedContent: this.result,
 					content: this.result,
 					favorite: this.favorite,
 					displayScene: this.scene,
 					displayStyle: this.category,
-					displayKeywords: this.scene,
+					displayKeywords: keywords,
 					displayGeneratedContent: this.result
 				}
 			}
+		},
+		onShow() {
+			this.refreshUserTags()
 		},
 		methods: {
 			chooseCategory(item) {
@@ -243,17 +218,21 @@
 
 				this.loading = true
 				this.recordId = 0
+				this.recordKeywords = ''
 				this.favorite = false
 				this.detailRecord = null
 
+				const scene = this.scene.trim()
+				const keywords = this.buildGenerateKeywords(scene)
 				post('/api/copywriting/generate', {
-					scene: this.scene,
+					scene,
 					mood: this.category,
 					style: this.category,
-					keywords: this.scene
+					keywords
 				}).then(data => {
 					this.result = data && data.content ? data.content : ''
 					this.recordId = data && data.recordId ? data.recordId : 0
+					this.recordKeywords = data && data.keywords ? data.keywords : this.buildDisplayKeywords(scene)
 					this.favorite = isFavorite(data)
 					this.loading = false
 					this.openDetail()
@@ -311,6 +290,205 @@
 			},
 			useExample(item) {
 				this.scene = item
+			},
+			refreshUserTags() {
+				this.userTags = []
+				if (isLoggedIn()) {
+					this.loadUserTags()
+					return
+				}
+
+				loadCurrentUser().then(user => {
+					if (user) {
+						this.loadUserTags()
+					}
+				}).catch(() => {})
+			},
+			loadUserTags() {
+				get('/api/user-tags').then(data => {
+					this.userTags = Array.isArray(data) ? data : []
+				}).catch(() => {
+					this.userTags = []
+				})
+			},
+			buildGenerateKeywords(scene) {
+				const text = String(scene === undefined ? this.scene : scene).trim()
+				const time = this.currentTimeContext()
+				const parts = [
+					text,
+					'当前时间：' + time.label
+				]
+
+				return parts.filter(Boolean).join('；')
+			},
+			buildDisplayKeywords(scene) {
+				const keywords = this.buildGenerateKeywords(scene)
+				if (!this.userTags.length) {
+					return keywords
+				}
+
+				return keywords + '；用户标签：' + this.userTags.join('、')
+			},
+			currentTimeContext() {
+				const now = new Date()
+				const month = now.getMonth() + 1
+				const day = now.getDate()
+				const hour = now.getHours()
+				const part = hour < 6 ? '凌晨' : hour < 12 ? '上午' : hour < 14 ? '中午' : hour < 18 ? '下午' : '晚上'
+				const label = month + '月' + day + '日' + part
+
+				return {
+					label,
+					season: this.seasonName(month),
+					festival: this.festivalName(month, day)
+				}
+			},
+			seasonName(month) {
+				if (month >= 3 && month <= 5) {
+					return '春天'
+				}
+
+				if (month >= 6 && month <= 8) {
+					return '夏天'
+				}
+
+				if (month >= 9 && month <= 11) {
+					return '秋天'
+				}
+
+				return '冬天'
+			},
+			festivalName(month, day) {
+				const key = (month < 10 ? '0' + month : month) + '-' + (day < 10 ? '0' + day : day)
+				const festivals = {
+					'01-01': '元旦',
+					'03-08': '妇女节',
+					'04-05': '清明节',
+					'05-01': '劳动节',
+					'06-01': '儿童节',
+					'09-10': '教师节',
+					'10-01': '国庆节',
+					'12-25': '圣诞节'
+				}
+
+				return festivals[key] || ''
+			},
+			userProfile() {
+				const tagText = this.userTags.join(' ')
+
+				if (/老师|教师|班主任|辅导员/.test(tagText)) {
+					return {
+						identity: '老师',
+						daily: '课后备课或校园日常',
+						blessingTarget: '同事或学生家长',
+						intro: '教师公开课或家长会',
+						speech: '班会或教学分享',
+						video: '课堂日常或校园记录',
+						healing: '忙碌教学后给自己的鼓励'
+					}
+				}
+
+				if (/学生|大学生|研究生|高中生|初中生/.test(tagText)) {
+					return {
+						identity: '学生',
+						daily: '学习生活或校园日常',
+						blessingTarget: '老师或同学',
+						intro: '新班级或社团面试',
+						speech: '班会分享或竞选发言',
+						video: '校园生活 vlog',
+						healing: '学习压力下给自己的鼓励'
+					}
+				}
+
+				if (/程序员|开发|工程师|产品|设计/.test(tagText)) {
+					return {
+						identity: '职场人',
+						daily: '工作间隙或项目完成后的日常',
+						blessingTarget: '同事或朋友',
+						intro: '面试或团队入职',
+						speech: '项目复盘或工作分享',
+						video: '工作日常 vlog',
+						healing: '工作结束后给自己的放松短句'
+					}
+				}
+
+				if (/妈妈|爸爸|宝妈|家长/.test(tagText)) {
+					return {
+						identity: '家长',
+						daily: '陪伴家人或亲子日常',
+						blessingTarget: '家人或朋友',
+						intro: '家长会或社群介绍',
+						speech: '亲子活动分享',
+						video: '亲子生活 vlog',
+						healing: '照顾家庭后的温柔鼓励'
+					}
+				}
+
+				const identity = this.userTags.length ? this.userTags[0] : '你'
+				return {
+					identity,
+					daily: '今天的日常生活',
+					blessingTarget: '身边的人',
+					intro: '日常自我介绍',
+					speech: '一次简短分享',
+					video: '今天的生活片段',
+					healing: '给自己的鼓励'
+				}
+			},
+			buildExamples() {
+				const time = this.currentTimeContext()
+				const profile = this.userProfile()
+
+				if (this.category === '朋友圈文案') {
+					return [
+						time.label + '，记录' + profile.daily + '，适合' + profile.identity + '发朋友圈',
+						time.season + '里的一个小瞬间，写得自然一点',
+						'结合我的标签' + this.userTagText() + '，写一条今天适合发的朋友圈'
+					]
+				}
+
+				if (this.category === '节日祝福') {
+					const festival = time.festival
+					const blessingTheme = festival ? festival + '祝福' : time.label + '适合发送的日常祝福'
+					return [
+						'给' + profile.blessingTarget + '的' + blessingTheme + '，符合' + profile.identity + '身份',
+						'结合我的标签' + this.userTagText() + '，写一段不过时的祝福',
+						time.season + '里给重要的人一段温柔祝福'
+					]
+				}
+
+				if (this.category === '自我介绍') {
+					return [
+						profile.intro + '自我介绍，突出我的标签' + this.userTagText(),
+						'结合' + profile.identity + '身份，写一段真诚自然的自我介绍',
+						'适合今天使用的简短自我介绍，不夸张'
+					]
+				}
+
+				if (this.category === '演讲稿') {
+					return [
+						profile.speech + '，结合' + time.label + '，三分钟',
+						'围绕我的标签' + this.userTagText() + '，写一段积极诚恳的演讲',
+						time.season + '主题分享，语气自然有感染力'
+					]
+				}
+
+				if (this.category === '短视频配文') {
+					return [
+						profile.video + '，结合' + time.label + '，轻松自然',
+						'根据我的标签' + this.userTagText() + '，写一条短视频配文',
+						time.season + '氛围的日常 vlog 配文'
+					]
+				}
+
+				return [
+					profile.healing + '，结合' + time.label,
+					'根据我的标签' + this.userTagText() + '，写一句温柔短句',
+					time.season + '适合收藏的治愈短句'
+				]
+			},
+			userTagText() {
+				return this.userTags.length ? '：' + this.userTags.join('、') : '和当前身份'
 			}
 		}
 	}
