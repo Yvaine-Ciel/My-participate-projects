@@ -38,7 +38,7 @@
 			</button>
 		</view>
 
-		<view class="surface-card hint-card" v-if="!result">
+		<view class="surface-card hint-card">
 			<text class="hint-title">试试这些内容</text>
 			<view class="example-list">
 				<button
@@ -121,33 +121,58 @@
 				categories: [
 					{
 						name: '朋友圈文案',
-						placeholder: '输入想发布的场景，例如：傍晚散步，晚风轻轻吹过，心情很好'
+						placeholder: '输入想发布的场景，例如：傍晚散步，晚风轻轻吹过，心情很好',
+						examples: [
+							'傍晚散步，晚风轻轻吹过，今天的心情很好',
+							'周末和朋友喝咖啡，想发一条轻松自然的朋友圈',
+							'雨后看到彩虹，想记录一下生活里的小确幸'
+						]
 					},
 					{
 						name: '节日祝福',
-						placeholder: '输入祝福对象、想要的风格，例如：给妈妈的中秋祝福，温柔简短'
+						placeholder: '输入祝福对象、想要的风格，例如：给妈妈的中秋祝福，温柔简短',
+						examples: [
+							'给妈妈的中秋祝福，温柔简短',
+							'给老师的教师节祝福，真诚不夸张',
+							'给朋友的新年祝福，活泼一点'
+						]
 					},
 					{
 						name: '自我介绍',
-						placeholder: '输入你的身份、特点和用途，例如：大学生社团面试，真诚自然'
+						placeholder: '输入你的身份、特点和用途，例如：大学生社团面试，真诚自然',
+						examples: [
+							'大学生社团面试，真诚自然',
+							'求职面试一分钟自我介绍，稳重大方',
+							'新班级开学自我介绍，友好一点'
+						]
 					},
 					{
 						name: '演讲稿',
-						placeholder: '输入主题、场合和时长，例如：班会分享，主题是坚持'
+						placeholder: '输入主题、场合和时长，例如：班会分享，主题是坚持',
+						examples: [
+							'班会分享，主题是坚持，三分钟',
+							'国旗下讲话，主题是珍惜时间',
+							'竞选班干部演讲，语气积极诚恳'
+						]
 					},
 					{
 						name: '短视频配文',
-						placeholder: '输入视频内容和情绪，例如：旅行 vlog，轻松治愈'
+						placeholder: '输入视频内容和情绪，例如：旅行 vlog，轻松治愈',
+						examples: [
+							'旅行短视频配文，轻松治愈，适合朋友圈',
+							'美食探店视频，语气轻松有吸引力',
+							'日常生活 vlog，温暖自然'
+						]
 					},
 					{
 						name: '治愈短句',
-						placeholder: '输入情绪或关键词，例如：最近很累，想要一点鼓励'
+						placeholder: '输入情绪或关键词，例如：最近很累，想要一点鼓励',
+						examples: [
+							'最近很累，想要一点鼓励',
+							'适合睡前看的温柔短句',
+							'写给自己的治愈文案，简短有力量'
+						]
 					}
-				],
-				examples: [
-					'给妈妈的中秋祝福，温柔简短',
-					'傍晚散步，晚风轻轻吹过，今天的心情很好',
-					'旅行短视频配文，轻松治愈，适合朋友圈'
 				]
 			}
 		},
@@ -155,6 +180,10 @@
 			placeholder() {
 				const current = this.categories.find(item => item.name === this.category)
 				return current ? current.placeholder : '请输入你的需求'
+			},
+			examples() {
+				const current = this.categories.find(item => item.name === this.category)
+				return current && current.examples ? current.examples : []
 			},
 			currentRecord() {
 				return {
