@@ -1,6 +1,6 @@
 # Moment Copywriter
 
-朋友圈文案生成小程序。项目包含 uni-app 前端和 Java Servlet 后端，支持用户注册登录、AI 文案生成、复制结果、历史记录、收藏管理和清空历史。
+朋友圈文案生成小程序。项目包含 uni-app 前端和 Java Servlet 后端，支持用户注册登录、AI 文案生成、隐藏标签上下文、继续优化、生成过程记录、复制结果、历史记录、收藏管理和清空历史。
 
 本文档面向公开仓库编写，只使用相对路径和占位符，不包含个人电脑绝对路径、真实账号密码、真实 API Key 或固定本机访问地址。
 
@@ -9,10 +9,12 @@
 - 账号注册、登录、退出登录。
 - 基于场景、心情、风格、关键词生成朋友圈文案。
 - 支持朋友圈文案、节日祝福、自我介绍、演讲稿、短视频配文、治愈短句等场景。
+- 支持用户标签，生成和继续优化时会作为隐藏上下文参与 AI 生成。
+- 支持对已生成文案继续优化，并记录每次生成和优化过程。
 - 生成结果可复制到剪贴板。
 - 登录用户可保存生成历史。
 - 支持收藏、取消收藏、只看收藏。
-- 支持删除单条历史记录、清空全部历史记录。
+- 支持删除单条历史记录、清空全部历史记录；清空历史会移除优化过程记录，但保留已收藏文案。
 
 ## 技术栈
 
@@ -139,11 +141,15 @@ web/sql/init.sql
 sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "web\sql\init.sql"
 ```
 
-脚本会创建 `MomentCopywriter` 数据库和 3 张业务表：
+脚本会创建 `MomentCopywriter` 数据库和 5 张业务表：
 
 - `users`：用户表。
+- `user_tags`：用户标签表。
 - `copywriting_records`：文案生成历史表。
+- `copywriting_record_steps`：生成和优化过程记录表。
 - `favorites`：收藏表。
+
+脚本已做存在性判断，重复执行不会主动删除已有数据；如果旧环境缺少表或索引，会补建缺失对象。清空历史功能依赖 `copywriting_records.user_id` 可为空，以便已收藏文案从历史中移除后仍可保留在收藏列表。
 
 数据库字段、索引和外键说明见：
 
@@ -217,9 +223,9 @@ common/config.js
 
 | 页面 | 路径 | 说明 |
 | --- | --- | --- |
-| 文案生成 | `pages/index/index` | 输入需求、选择文案类型、调用 AI 生成文案、复制和收藏结果。 |
-| 历史记录 | `pages/history/history` | 查看生成历史，支持只看收藏、复制、收藏切换、删除记录。 |
-| 我的 | `pages/profile/profile` | 查看登录状态，进入收藏和历史，清空历史，退出登录。 |
+| 文案生成 | `pages/index/index` | 输入需求、选择文案类型、调用 AI 生成文案、继续优化、复制和收藏结果。 |
+| 历史记录 | `pages/history/history` | 查看生成历史和优化过程，支持只看收藏、复制、收藏切换、删除记录。 |
+| 我的 | `pages/profile/profile` | 查看登录状态，进入收藏和历史，管理标签，清空历史，退出登录。 |
 | 登录 | `pages/login/login` | 用户登录。 |
 | 注册 | `pages/register/register` | 用户注册。 |
 
@@ -234,13 +240,18 @@ common/config.js
 | `POST` | `/api/login` | 登录用户。 |
 | `POST` | `/api/logout` | 退出登录。 |
 | `GET` | `/api/current-user` | 获取当前登录用户。 |
+| `GET` | `/api/user-tags` | 获取当前用户标签。 |
+| `POST` | `/api/user-tags/add` | 添加用户标签。 |
+| `POST` | `/api/user-tags/delete` | 删除用户标签。 |
 | `POST` | `/api/copywriting/generate` | 生成文案并保存历史。 |
+| `POST` | `/api/copywriting/optimize` | 继续优化已生成文案，并保存优化过程。 |
+| `GET` / `POST` | `/api/copywriting/steps` | 获取某条文案的生成和优化过程。 |
 | `GET` / `POST` | `/api/copywriting/history` | 获取历史记录。 |
 | `GET` / `POST` | `/api/copywriting/favorites` | 获取收藏记录。 |
 | `POST` | `/api/copywriting/favorite/add` | 添加收藏。 |
 | `POST` / `DELETE` | `/api/copywriting/favorite/delete` | 取消收藏。 |
 | `POST` / `DELETE` | `/api/copywriting/delete` | 删除单条历史。 |
-| `POST` / `DELETE` | `/api/copywriting/clear-history` | 清空历史。 |
+| `POST` / `DELETE` | `/api/copywriting/clear-history` | 清空历史和优化过程，保留收藏。 |
 
 完整接口参数、返回数据和数据库表设计见：
 
