@@ -56,7 +56,30 @@
 				</view>
 
 				<scroll-view class="detail-body" scroll-y>
-					<view class="detail-section">
+					<view class="detail-pager" v-if="showDetailSteps">
+						<button
+							class="pager-button"
+							:disabled="detailStepIndex === 0"
+							@tap.stop="prevDetailStep"
+						>
+							上一页
+						</button>
+						<text class="pager-text">第{{ detailStepIndex + 1 }} / {{ detailSteps.length }}页</text>
+						<button
+							class="pager-button"
+							:disabled="detailStepIndex >= detailSteps.length - 1"
+							@tap.stop="nextDetailStep"
+						>
+							下一页
+						</button>
+					</view>
+
+					<view class="detail-section" v-if="showDetailSteps">
+						<text class="detail-label">{{ detailStepTitle }}</text>
+						<text class="detail-content">{{ detailStepUserMessage }}</text>
+					</view>
+
+					<view class="detail-section" v-else>
 						<text class="detail-label">生成要求</text>
 						<text class="detail-content">{{ detailRecord.displayScene || '无' }}</text>
 					</view>
@@ -78,7 +101,7 @@
 
 					<view class="detail-section">
 						<text class="detail-label">生成内容</text>
-						<text class="detail-content">{{ detailRecord.displayGeneratedContent || '无' }}</text>
+						<text class="detail-content">{{ detailGeneratedContent }}</text>
 					</view>
 				</scroll-view>
 
@@ -116,7 +139,9 @@
 				favorites: [],
 				onlyFavorites: false,
 				loading: false,
-				detailRecord: null
+				detailRecord: null,
+				detailSteps: [],
+				detailStepIndex: 0
 			}
 		},
 		computed: {
@@ -135,6 +160,42 @@
 						displayGeneratedContent: this.displayText(record.generatedContent)
 					})
 				})
+			},
+			showDetailSteps() {
+				return !this.onlyFavorites && this.detailSteps.length > 0
+			},
+			detailStep() {
+				if (!this.showDetailSteps) {
+					return null
+				}
+
+				return this.detailSteps[this.detailStepIndex] || null
+			},
+			detailStepTitle() {
+				const step = this.detailStep
+				if (!step) {
+					return '生成要求'
+				}
+
+				return step.stepNo <= 1 ? '第1次生成要求' : '第' + step.stepNo + '次优化要求'
+			},
+			detailStepUserMessage() {
+				const step = this.detailStep
+				if (!step) {
+					return '无'
+				}
+
+				return this.displayText(step.userMessage) || this.detailRecord.displayScene || '无'
+			},
+			detailGeneratedContent() {
+				const step = this.detailStep
+				if (step) {
+					return this.displayText(step.generatedContent) || '无'
+				}
+
+				return this.detailRecord && this.detailRecord.displayGeneratedContent
+					? this.detailRecord.displayGeneratedContent
+					: '无'
 			}
 		},
 		onLoad(options) {
@@ -278,9 +339,40 @@
 				}
 
 				this.detailRecord = Object.assign({}, record)
+				this.detailSteps = []
+				this.detailStepIndex = 0
+
+				if (!this.onlyFavorites && record.id) {
+					this.loadDetailSteps(record.id)
+				}
 			},
 			closeDetail() {
 				this.detailRecord = null
+				this.detailSteps = []
+				this.detailStepIndex = 0
+			},
+			loadDetailSteps(recordId) {
+				post('/api/copywriting/steps', {
+					recordId
+				}).then(data => {
+					this.detailSteps = Array.isArray(data) ? data : []
+					this.detailStepIndex = 0
+				}).catch(message => {
+					uni.showToast({
+						title: String(message),
+						icon: 'none'
+					})
+				})
+			},
+			prevDetailStep() {
+				if (this.detailStepIndex > 0) {
+					this.detailStepIndex--
+				}
+			},
+			nextDetailStep() {
+				if (this.detailStepIndex < this.detailSteps.length - 1) {
+					this.detailStepIndex++
+				}
 			},
 			copyRecord(record) {
 				const content = record && (record.displayGeneratedContent || record.generatedContent)
@@ -293,7 +385,13 @@
 				})
 			},
 			copyDetail() {
-				this.copyRecord(this.detailRecord)
+				if (!this.detailGeneratedContent || this.detailGeneratedContent === '无') {
+					return
+				}
+
+				uni.setClipboardData({
+					data: this.detailGeneratedContent
+				})
 			},
 			toggleRecordFavorite(record) {
 				toggleFavorite(record).then(favorite => {
@@ -582,6 +680,34 @@
 
 	.detail-body {
 		height: 56vh;
+	}
+
+	.detail-pager {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 26rpx;
+	}
+
+	.pager-button {
+		width: 150rpx;
+		height: 60rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10rpx;
+		background: #F2F4F7;
+		color: #222222;
+		font-size: 26rpx;
+	}
+
+	.pager-button[disabled] {
+		color: #A0A0A0;
+	}
+
+	.pager-text {
+		color: #555555;
+		font-size: 26rpx;
 	}
 
 	.detail-section {

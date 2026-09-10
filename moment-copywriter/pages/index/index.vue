@@ -80,6 +80,24 @@
 						<text class="detail-label">生成内容</text>
 						<text class="detail-content">{{ detailRecord.displayGeneratedContent || '无' }}</text>
 					</view>
+
+					<view class="detail-section">
+						<text class="detail-label">继续优化</text>
+						<textarea
+							class="optimize-input"
+							v-model="optimizeMessage"
+							placeholder="例如：再温柔一点，少一点正式感"
+							maxlength="180"
+						></textarea>
+						<button
+							class="optimize-button"
+							:loading="optimizing"
+							:disabled="optimizing"
+							@tap.stop="optimizeCopywriting"
+						>
+							{{ optimizing ? '优化中' : '发送优化要求' }}
+						</button>
+					</view>
 				</scroll-view>
 
 				<view class="detail-actions">
@@ -117,8 +135,11 @@
 				recordId: 0,
 				recordKeywords: '',
 				loading: false,
+				optimizing: false,
+				optimizeMessage: '',
 				favorite: false,
 				detailRecord: null,
+				detailSteps: [],
 				userTags: [],
 				categories: [
 					{
@@ -221,6 +242,8 @@
 				this.recordKeywords = ''
 				this.favorite = false
 				this.detailRecord = null
+				this.detailSteps = []
+				this.optimizeMessage = ''
 
 				const scene = this.scene.trim()
 				const keywords = this.buildGenerateKeywords(scene)
@@ -234,6 +257,12 @@
 					this.recordId = data && data.recordId ? data.recordId : 0
 					this.recordKeywords = data && data.keywords ? data.keywords : this.buildDisplayKeywords(scene)
 					this.favorite = isFavorite(data)
+					this.detailSteps = this.recordId > 0 ? [{
+						recordId: this.recordId,
+						stepNo: 1,
+						userMessage: scene,
+						generatedContent: this.result
+					}] : []
 					this.loading = false
 					this.openDetail()
 				}).catch(message => {
@@ -262,6 +291,42 @@
 			},
 			closeDetail() {
 				this.detailRecord = null
+			},
+			optimizeCopywriting() {
+				if (!this.recordId) {
+					uni.showToast({
+						title: '缺少文案记录ID，无法优化',
+						icon: 'none'
+					})
+					return
+				}
+
+				const message = this.optimizeMessage.trim()
+				if (!message) {
+					uni.showToast({
+						title: '请输入优化要求',
+						icon: 'none'
+					})
+					return
+				}
+
+				this.optimizing = true
+				post('/api/copywriting/optimize', {
+					recordId: this.recordId,
+					message
+				}).then(data => {
+					this.result = data && data.content ? data.content : this.result
+					this.detailSteps = data && Array.isArray(data.steps) ? data.steps : this.detailSteps
+					this.optimizeMessage = ''
+					this.optimizing = false
+					this.openDetail()
+				}).catch(error => {
+					this.optimizing = false
+					uni.showToast({
+						title: String(error),
+						icon: 'none'
+					})
+				})
 			},
 			toggleCurrentFavorite() {
 				if (!this.result) {
@@ -665,6 +730,31 @@
 		line-height: 1.55;
 		white-space: pre-wrap;
 		word-break: break-word;
+	}
+
+	.optimize-input {
+		width: 100%;
+		height: 136rpx;
+		padding: 18rpx 20rpx;
+		box-sizing: border-box;
+		border-radius: 10rpx;
+		background: #F7FAFF;
+		color: #111111;
+		font-size: 28rpx;
+		line-height: 1.45;
+	}
+
+	.optimize-button {
+		width: 100%;
+		height: 74rpx;
+		margin-top: 18rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10rpx;
+		background: #0878F7;
+		color: #FFFFFF;
+		font-size: 28rpx;
 	}
 
 	.detail-meta {

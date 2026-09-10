@@ -80,6 +80,54 @@ public class CopywritingRecordDao {
         return list;
     }
 
+    public CopywritingRecord findById(int id, int userId) {
+        String sql = "SELECT r.id, r.user_id, r.scene, r.mood, r.style, r.keywords, "
+                + "r.generated_content, r.ai_model, r.create_time, "
+                + "CASE WHEN f.id IS NULL THEN 0 ELSE 1 END AS favorite, "
+                + "f.create_time AS favorite_time "
+                + "FROM copywriting_records r "
+                + "LEFT JOIN favorites f ON f.record_id = r.id AND f.user_id = ? "
+                + "WHERE r.id = ? AND r.user_id = ?";
+
+        try (
+                Connection conn = DBUtil.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setInt(1, userId);
+            ps.setInt(2, id);
+            ps.setInt(3, userId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRecord(rs);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public boolean updateGeneratedContent(int id, int userId, String generatedContent) {
+        String sql = "UPDATE copywriting_records SET generated_content = ? "
+                + "WHERE id = ? AND user_id = ?";
+
+        try (
+                Connection conn = DBUtil.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setString(1, generatedContent);
+            ps.setInt(2, id);
+            ps.setInt(3, userId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     public boolean deleteById(int id, int userId) {
         if (id <= 0 || userId <= 0) {
             return false;

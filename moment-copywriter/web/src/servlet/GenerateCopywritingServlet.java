@@ -1,6 +1,7 @@
 package servlet;
 
 import dao.CopywritingRecordDao;
+import dao.CopywritingRecordStepDao;
 import dao.UserTagDao;
 import entity.CopywritingRecord;
 import util.AiClient;
@@ -68,6 +69,9 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         record.setAiModel(aiClient.getModel());
 
         int recordId = new CopywritingRecordDao().add(record);
+        if (recordId > 0) {
+            new CopywritingRecordStepDao().add(recordId, 1, scene, content);
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("content", content);

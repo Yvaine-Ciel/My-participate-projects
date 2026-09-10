@@ -79,6 +79,58 @@ public class AiClient {
         return parseContent(responseBody);
     }
 
+    public String optimizeMomentCopywriting(
+            String scene,
+            String mood,
+            String style,
+            String keywords,
+            String currentContent,
+            String instruction
+    ) throws Exception {
+        if (isBlank(API_KEY)) {
+            throw new IllegalStateException("Environment variable AI_API_KEY is required");
+        }
+
+        if (isBlank(MODEL)) {
+            throw new IllegalStateException("Environment variable AI_MODEL is required");
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("model", MODEL);
+        payload.put("temperature", 0.75);
+        payload.put("messages", buildOptimizeMessages(
+                scene,
+                mood,
+                style,
+                keywords,
+                currentContent,
+                instruction
+        ));
+
+        HttpURLConnection connection =
+                (HttpURLConnection) new URL(API_URL).openConnection();
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(60000);
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+        connection.setRequestProperty("Authorization", "Bearer " + API_KEY);
+
+        byte[] body = GSON.toJson(payload).getBytes(StandardCharsets.UTF_8);
+        try (OutputStream outputStream = connection.getOutputStream()) {
+            outputStream.write(body);
+        }
+
+        int statusCode = connection.getResponseCode();
+        String responseBody = readResponseBody(connection, statusCode);
+
+        if (statusCode < 200 || statusCode >= 300) {
+            throw new IOException("AI service error: HTTP " + statusCode);
+        }
+
+        return parseContent(responseBody);
+    }
+
     private List<Map<String, String>> buildMessages(
             String scene,
             String mood,
@@ -104,6 +156,41 @@ public class AiClient {
         return messages;
     }
 
+    private List<Map<String, String>> buildOptimizeMessages(
+            String scene,
+            String mood,
+            String style,
+            String keywords,
+            String currentContent,
+            String instruction
+    ) {
+        List<Map<String, String>> messages = new ArrayList<>();
+
+        Map<String, String> system = new HashMap<>();
+        system.put("role", "system");
+        system.put(
+                "content",
+                "You are a professional Chinese WeChat Moments copywriter. "
+                        + "Revise the captions according to the user's instruction. "
+                        + "Return only the revised captions."
+        );
+        messages.add(system);
+
+        Map<String, String> user = new HashMap<>();
+        user.put("role", "user");
+        user.put("content", buildOptimizePrompt(
+                scene,
+                mood,
+                style,
+                keywords,
+                currentContent,
+                instruction
+        ));
+        messages.add(user);
+
+        return messages;
+    }
+
     private String buildPrompt(
             String scene,
             String mood,
@@ -116,6 +203,24 @@ public class AiClient {
                 + "Style: " + valueOrDefault(style) + "\n"
                 + "Keywords: " + valueOrDefault(keywords) + "\n"
                 + "Rules: natural, short, friendly, no markdown.";
+    }
+
+    private String buildOptimizePrompt(
+            String scene,
+            String mood,
+            String style,
+            String keywords,
+            String currentContent,
+            String instruction
+    ) {
+        return "Optimize these Chinese WeChat Moments captions.\n"
+                + "Original scene: " + valueOrDefault(scene) + "\n"
+                + "Mood: " + valueOrDefault(mood) + "\n"
+                + "Style: " + valueOrDefault(style) + "\n"
+                + "Keywords: " + valueOrDefault(keywords) + "\n"
+                + "Current captions:\n" + valueOrDefault(currentContent) + "\n"
+                + "User instruction: " + valueOrDefault(instruction) + "\n"
+                + "Rules: keep the same topic, follow the instruction, natural, short, friendly, no markdown.";
     }
 
     private String valueOrDefault(String value) {

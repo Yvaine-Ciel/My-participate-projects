@@ -38,7 +38,7 @@ CREATE TABLE copywriting_records (
     scene NVARCHAR(200) NOT NULL,
     mood NVARCHAR(50) NULL,
     style NVARCHAR(50) NULL,
-    keywords NVARCHAR(200) NULL,
+    keywords NVARCHAR(500) NULL,
     generated_content NVARCHAR(MAX) NOT NULL,
     ai_model NVARCHAR(100) NULL,
     create_time DATETIME NOT NULL DEFAULT GETDATE(),
@@ -46,6 +46,25 @@ CREATE TABLE copywriting_records (
         FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE SET NULL
 );
+GO
+
+CREATE TABLE copywriting_record_steps (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    record_id INT NOT NULL,
+    step_no INT NOT NULL,
+    user_message NVARCHAR(500) NULL,
+    generated_content NVARCHAR(MAX) NOT NULL,
+    create_time DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT fk_copywriting_record_steps_record
+        FOREIGN KEY (record_id) REFERENCES copywriting_records(id)
+        ON DELETE CASCADE,
+    CONSTRAINT uq_copywriting_record_steps_no
+        UNIQUE (record_id, step_no)
+);
+GO
+
+CREATE INDEX idx_copywriting_record_steps_record_no
+    ON copywriting_record_steps(record_id, step_no ASC);
 GO
 
 CREATE INDEX idx_copywriting_records_user_time
