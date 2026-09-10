@@ -38,27 +38,7 @@
 			</button>
 		</view>
 
-		<view class="surface-card result-card" v-if="result">
-			<view class="result-title-row">
-				<view class="spark-icon"></view>
-				<text class="result-title">生成结果</text>
-			</view>
-
-			<text class="result-content">{{ result }}</text>
-
-			<view class="result-actions">
-				<button class="plain-action" @tap="copyResult">
-					<text class="circle-mark">✓</text>
-					<text>复制</text>
-				</button>
-				<button class="favorite-action" :class="{ active: favorite }" @tap="toggleCurrentFavorite">
-					<text class="circle-mark">{{ favorite ? '♥' : '♡' }}</text>
-					<text>{{ favorite ? '已收藏' : '收藏' }}</text>
-				</button>
-			</view>
-		</view>
-
-		<view class="surface-card hint-card" v-else>
+		<view class="surface-card hint-card" v-if="!result">
 			<text class="hint-title">试试这些内容</text>
 			<view class="example-list">
 				<button
@@ -69,6 +49,49 @@
 				>
 					{{ item }}
 				</button>
+			</view>
+		</view>
+
+		<view v-if="detailRecord" class="detail-mask" @tap="closeDetail">
+			<view class="detail-panel" @tap.stop>
+				<view class="detail-header">
+					<text class="detail-title">文案详情</text>
+					<button class="detail-close" @tap.stop="closeDetail">×</button>
+				</view>
+
+				<scroll-view class="detail-body" scroll-y>
+					<view class="detail-section">
+						<text class="detail-label">生成要求</text>
+						<text class="detail-content">{{ detailRecord.displayScene || '无' }}</text>
+					</view>
+
+					<view class="detail-meta" v-if="detailRecord.displayStyle || detailRecord.displayKeywords">
+						<view class="detail-field" v-if="detailRecord.displayStyle">
+							<text class="detail-field-label">风格</text>
+							<text class="detail-field-value">{{ detailRecord.displayStyle }}</text>
+						</view>
+						<view class="detail-field" v-if="detailRecord.displayKeywords">
+							<text class="detail-field-label">关键词</text>
+							<text class="detail-field-value">{{ detailRecord.displayKeywords }}</text>
+						</view>
+					</view>
+
+					<view class="detail-section">
+						<text class="detail-label">生成内容</text>
+						<text class="detail-content">{{ detailRecord.displayGeneratedContent || '无' }}</text>
+					</view>
+				</scroll-view>
+
+				<view class="detail-actions">
+					<button class="detail-action" @tap.stop="copyResult">复制</button>
+					<button
+						class="detail-action favorite"
+						:class="{ active: detailRecord.favorite }"
+						@tap.stop="toggleCurrentFavorite"
+					>
+						{{ detailRecord.favorite ? '取消收藏' : '收藏' }}
+					</button>
+				</view>
 			</view>
 		</view>
 
@@ -94,6 +117,7 @@
 				recordId: 0,
 				loading: false,
 				favorite: false,
+				detailRecord: null,
 				categories: [
 					{
 						name: '朋友圈文案',
@@ -138,8 +162,14 @@
 					recordId: this.recordId,
 					style: this.category,
 					scene: this.scene,
+					keywords: this.scene,
 					generatedContent: this.result,
-					content: this.result
+					content: this.result,
+					favorite: this.favorite,
+					displayScene: this.scene,
+					displayStyle: this.category,
+					displayKeywords: this.scene,
+					displayGeneratedContent: this.result
 				}
 			}
 		},
@@ -185,6 +215,7 @@
 				this.loading = true
 				this.recordId = 0
 				this.favorite = false
+				this.detailRecord = null
 
 				post('/api/copywriting/generate', {
 					scene: this.scene,
@@ -196,6 +227,7 @@
 					this.recordId = data && data.recordId ? data.recordId : 0
 					this.favorite = isFavorite(data)
 					this.loading = false
+					this.openDetail()
 				}).catch(message => {
 					this.loading = false
 					uni.showToast({
@@ -213,6 +245,16 @@
 					data: this.result
 				})
 			},
+			openDetail() {
+				if (!this.result) {
+					return
+				}
+
+				this.detailRecord = Object.assign({}, this.currentRecord)
+			},
+			closeDetail() {
+				this.detailRecord = null
+			},
 			toggleCurrentFavorite() {
 				if (!this.result) {
 					return
@@ -222,6 +264,11 @@
 					favorite: this.favorite
 				})).then(favorite => {
 					this.favorite = favorite
+					if (this.detailRecord) {
+						this.detailRecord = Object.assign({}, this.detailRecord, {
+							favorite
+						})
+					}
 					uni.showToast({
 						title: this.favorite ? '已收藏' : '已取消',
 						icon: 'none'
@@ -307,102 +354,6 @@
 		height: 88rpx;
 	}
 
-	.result-card {
-		padding: 40rpx;
-		margin-bottom: 40rpx;
-	}
-
-	.result-title-row {
-		display: flex;
-		align-items: center;
-		margin-bottom: 34rpx;
-	}
-
-	.spark-icon {
-		width: 24rpx;
-		height: 24rpx;
-		margin-right: 18rpx;
-		position: relative;
-		transform: rotate(45deg);
-		background: #FFC928;
-	}
-
-	.spark-icon::before,
-	.spark-icon::after {
-		content: '';
-		position: absolute;
-		left: 50%;
-		top: 50%;
-		transform: translate(-50%, -50%);
-		background: #FFC928;
-	}
-
-	.spark-icon::before {
-		width: 44rpx;
-		height: 12rpx;
-	}
-
-	.spark-icon::after {
-		width: 12rpx;
-		height: 44rpx;
-	}
-
-	.result-title {
-		color: #050505;
-		font-size: 38rpx;
-		font-weight: 800;
-	}
-
-	.result-content {
-		display: block;
-		color: #090909;
-		font-size: 34rpx;
-		line-height: 1.6;
-		white-space: pre-wrap;
-	}
-
-	.result-actions {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: 42rpx;
-	}
-
-	.plain-action,
-	.favorite-action {
-		height: 72rpx;
-		display: flex;
-		align-items: center;
-		color: #666666;
-		font-size: 30rpx;
-	}
-
-	.favorite-action {
-		padding: 0 28rpx;
-		border: 1rpx solid #E1E4EA;
-		border-radius: 36rpx;
-		color: #005EDB;
-		background: #FFFFFF;
-	}
-
-	.favorite-action.active {
-		background: #EAF3FF;
-		border-color: #B7D7FF;
-	}
-
-	.circle-mark {
-		width: 34rpx;
-		height: 34rpx;
-		margin-right: 12rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 2rpx solid currentColor;
-		border-radius: 50%;
-		font-size: 22rpx;
-		line-height: 1;
-	}
-
 	.hint-card {
 		padding: 34rpx 34rpx 24rpx;
 	}
@@ -430,5 +381,137 @@
 
 	.example-item:last-child {
 		border-bottom: none;
+	}
+
+	.detail-mask {
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 40;
+		display: flex;
+		align-items: flex-end;
+		background: rgba(0, 0, 0, 0.38);
+	}
+
+	.detail-panel {
+		position: relative;
+		width: 100%;
+		max-height: 84vh;
+		padding: 34rpx 36rpx calc(34rpx + env(safe-area-inset-bottom));
+		border-radius: 24rpx 24rpx 0 0;
+		background: #FFFFFF;
+		box-sizing: border-box;
+	}
+
+	.detail-header {
+		display: flex;
+		align-items: center;
+		padding-right: 82rpx;
+		margin-bottom: 24rpx;
+	}
+
+	.detail-title {
+		color: #0A0A0A;
+		font-size: 38rpx;
+		font-weight: 800;
+	}
+
+	.detail-close {
+		position: absolute;
+		top: 28rpx;
+		right: 32rpx;
+		width: 58rpx;
+		height: 58rpx;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: #F2F4F7;
+		color: #333333;
+		font-size: 38rpx;
+		line-height: 1;
+	}
+
+	.detail-body {
+		height: 56vh;
+	}
+
+	.detail-section {
+		margin-bottom: 30rpx;
+	}
+
+	.detail-label {
+		display: block;
+		margin-bottom: 14rpx;
+		color: #555555;
+		font-size: 26rpx;
+	}
+
+	.detail-content {
+		display: block;
+		color: #111111;
+		font-size: 30rpx;
+		line-height: 1.55;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.detail-meta {
+		margin-bottom: 30rpx;
+		padding: 22rpx 24rpx;
+		border-radius: 12rpx;
+		background: #F7FAFF;
+	}
+
+	.detail-field {
+		margin-bottom: 14rpx;
+	}
+
+	.detail-field:last-child {
+		margin-bottom: 0;
+	}
+
+	.detail-field-label {
+		margin-right: 18rpx;
+		color: #666666;
+		font-size: 26rpx;
+	}
+
+	.detail-field-value {
+		color: #111111;
+		font-size: 28rpx;
+	}
+
+	.detail-actions {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-top: 24rpx;
+	}
+
+	.detail-action {
+		width: 30%;
+		height: 74rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10rpx;
+		background: #F2F4F7;
+		color: #222222;
+		font-size: 28rpx;
+	}
+
+	.detail-action.favorite {
+		background: #EAF3FF;
+		color: #0069E8;
+	}
+
+	.detail-action.favorite.active {
+		background: #0878F7;
+		color: #FFFFFF;
 	}
 </style>
