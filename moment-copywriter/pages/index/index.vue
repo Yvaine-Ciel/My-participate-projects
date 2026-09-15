@@ -139,7 +139,6 @@
 				optimizeMessage: '',
 				favorite: false,
 				detailRecord: null,
-				detailSteps: [],
 				userTags: [],
 				categories: [
 					{
@@ -242,7 +241,6 @@
 				this.recordKeywords = ''
 				this.favorite = false
 				this.detailRecord = null
-				this.detailSteps = []
 				this.optimizeMessage = ''
 
 				const scene = this.scene.trim()
@@ -257,12 +255,6 @@
 					this.recordId = data && data.recordId ? data.recordId : 0
 					this.recordKeywords = data && data.keywords ? data.keywords : this.buildDisplayKeywords(scene)
 					this.favorite = isFavorite(data)
-					this.detailSteps = this.recordId > 0 ? [{
-						recordId: this.recordId,
-						stepNo: 1,
-						userMessage: scene,
-						generatedContent: this.result
-					}] : []
 					this.loading = false
 					this.openDetail()
 				}).catch(message => {
@@ -316,7 +308,6 @@
 					message
 				}).then(data => {
 					this.result = data && data.content ? data.content : this.result
-					this.detailSteps = data && Array.isArray(data.steps) ? data.steps : this.detailSteps
 					this.optimizeMessage = ''
 					this.optimizing = false
 					this.openDetail()

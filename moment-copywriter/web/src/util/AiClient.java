@@ -143,7 +143,7 @@ public class AiClient {
         system.put("role", "system");
         system.put(
                 "content",
-                "You are a professional Chinese WeChat Moments copywriter. "
+                "You are a professional Chinese Moments copywriter. "
                         + "Return only the generated captions."
         );
         messages.add(system);
@@ -170,7 +170,7 @@ public class AiClient {
         system.put("role", "system");
         system.put(
                 "content",
-                "You are a professional Chinese WeChat Moments copywriter. "
+                "You are a professional Chinese Moments copywriter. "
                         + "Revise the captions according to the user's instruction. "
                         + "Return only the revised captions."
         );
