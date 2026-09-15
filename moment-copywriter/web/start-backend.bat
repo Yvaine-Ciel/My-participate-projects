@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-title Moment Copywriter Backend
+title AI Copywriter Backend
 
 set "BACKEND_ROOT=%~dp0"
 if "%BACKEND_ROOT:~-1%"=="\" set "BACKEND_ROOT=%BACKEND_ROOT:~0,-1%"

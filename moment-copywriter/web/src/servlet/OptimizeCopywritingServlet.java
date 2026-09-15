@@ -35,7 +35,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
 
         if (recordId <= 0) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "recordId is required");
+                    "文案记录ID不能为空");
             return;
         }
 
@@ -49,7 +49,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         CopywritingRecord record = recordDao.findById(recordId, userId);
         if (record == null) {
             writeFail(response, HttpServletResponse.SC_NOT_FOUND,
-                    "Record not found");
+                    "文案记录不存在");
             return;
         }
 
@@ -61,7 +61,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         );
 
         try {
-            content = aiClient.optimizeMomentCopywriting(
+            content = aiClient.optimizeAiCopywriting(
                     record.getScene(),
                     record.getMood(),
                     record.getStyle(),
@@ -76,7 +76,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         } catch (Exception e) {
             e.printStackTrace();
             writeFail(response, HttpServletResponse.SC_BAD_GATEWAY,
-                    "AI service request failed");
+                    "AI 服务请求失败");
             return;
         }
 

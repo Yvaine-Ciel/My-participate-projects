@@ -2,7 +2,7 @@
 	<view class="app-page auth-page">
 		<view class="auth-header">
 			<text class="page-title">登录</text>
-			<text class="page-subtitle">进入后可生成并保存朋友圈文案。</text>
+			<text class="page-subtitle">进入后可生成并保存AI文案。</text>
 		</view>
 
 		<view class="panel auth-panel">

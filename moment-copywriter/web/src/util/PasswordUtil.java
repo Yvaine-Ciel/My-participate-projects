@@ -21,7 +21,7 @@ public class PasswordUtil {
             byte[] hash = digest.digest((salt + password).getBytes(StandardCharsets.UTF_8));
             return toHex(hash);
         } catch (Exception e) {
-            throw new IllegalStateException("Could not hash password", e);
+            throw new IllegalStateException("密码加密失败", e);
         }
     }
 

@@ -26,7 +26,7 @@ public class DBUtil {
     public static Connection getConnection() throws Exception {
         if (isBlank(PASSWORD)) {
             throw new IllegalStateException(
-                    "Environment variable MOMENT_DB_PASSWORD is required"
+                    "缺少 MOMENT_DB_PASSWORD 环境变量"
             );
         }
 

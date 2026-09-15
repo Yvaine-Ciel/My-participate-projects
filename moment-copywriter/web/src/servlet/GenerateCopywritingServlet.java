@@ -37,7 +37,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
 
         if (scene == null) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "scene is required");
+                    "场景不能为空");
             return;
         }
 
@@ -49,7 +49,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         String content;
 
         try {
-            content = aiClient.generateMomentCopywriting(scene, mood, style, promptKeywords);
+            content = aiClient.generateAiCopywriting(scene, mood, style, promptKeywords);
         } catch (IllegalStateException e) {
             writeFail(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     e.getMessage());
@@ -57,7 +57,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         } catch (Exception e) {
             e.printStackTrace();
             writeFail(response, HttpServletResponse.SC_BAD_GATEWAY,
-                    "AI service request failed");
+                    "AI 服务请求失败");
             return;
         }
 

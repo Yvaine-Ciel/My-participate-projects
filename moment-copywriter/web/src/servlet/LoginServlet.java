@@ -27,14 +27,14 @@ public class LoginServlet extends BaseApiServlet {
 
         if (phone == null || password == null) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "phone and password are required");
+                    "手机号和密码不能为空");
             return;
         }
 
         User user = new UserDao().login(phone, password);
         if (user == null) {
             writeFail(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid phone or password");
+                    "手机号或密码错误");
             return;
         }
 

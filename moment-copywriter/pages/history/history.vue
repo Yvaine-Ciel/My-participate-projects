@@ -292,10 +292,10 @@
 			},
 			cardTitle(record) {
 				if (!record) {
-					return '朋友圈文案'
+					return 'AI文案'
 				}
 
-				return record.displayScene || record.displayKeywords || record.displayStyle || '朋友圈文案'
+				return record.displayScene || record.displayKeywords || record.displayStyle || 'AI文案'
 			},
 			displayText(value) {
 				if (value === null || value === undefined) {

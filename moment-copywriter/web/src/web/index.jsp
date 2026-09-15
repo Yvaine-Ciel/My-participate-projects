@@ -3,10 +3,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Moment Copywriter Backend</title>
+    <title>AI Copywriter Backend</title>
 </head>
 <body>
-    <h1>Moment Copywriter Backend</h1>
+    <h1>AI Copywriter Backend</h1>
     <p>API service is running.</p>
 </body>
 </html>

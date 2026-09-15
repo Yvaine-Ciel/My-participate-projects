@@ -1,7 +1,7 @@
 {
     "name" : "moment-copywriter",
     "appid" : "",
-    "description" : "朋友圈文案生成小程序",
+    "description" : "AI文案生成小程序",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,

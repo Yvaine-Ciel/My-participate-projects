@@ -279,7 +279,7 @@
 			showAbout() {
 				uni.showModal({
 					title: '关于小程序',
-					content: '朋友圈文案生成器，用于生成、复制和收藏日常文案。',
+					content: 'AI文案生成器，用于生成、复制和收藏多场景文案。',
 					showCancel: false
 				})
 			},

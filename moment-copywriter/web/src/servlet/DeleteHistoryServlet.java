@@ -45,14 +45,14 @@ public class DeleteHistoryServlet extends BaseApiServlet {
 
         if (id <= 0) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "id is required");
+                    "记录ID不能为空");
             return;
         }
 
         boolean deleted = new CopywritingRecordDao().deleteById(id, userId);
         if (!deleted) {
             writeFail(response, HttpServletResponse.SC_NOT_FOUND,
-                    "Record not found");
+                    "文案记录不存在");
             return;
         }
 

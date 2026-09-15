@@ -1,6 +1,6 @@
-# Moment Copywriter 后端说明
+# AI文案生成器后端说明
 
-这是朋友圈文案生成小程序的 Java 后端，技术栈是 Servlet + JDBC + SQL Server。本文档只说明通用运行思路，不包含任何个人电脑的绝对路径、真实账号密码、真实 API Key 或固定本机地址。
+这是AI文案生成小程序的 Java 后端，技术栈是 Servlet + JDBC + SQL Server。本文档只说明通用运行思路，不包含任何个人电脑的绝对路径、真实账号密码、真实 API Key 或固定本机地址。
 
 ## 目录结构
 
@@ -122,7 +122,7 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 - HBuilderX / 微信开发者工具：运行前端页面。
 - Tomcat：运行 Java 后端接口。
 - SQL Server：保存用户、标签、历史记录、优化过程和收藏数据。
-- AI 服务：生成朋友圈文案。
+- AI 服务：生成AI文案。
 
 如果只运行 HBuilderX，页面可以打开，但注册、登录、历史记录、收藏、生成文案等功能会因为后端没有启动而失败。
 
@@ -167,7 +167,7 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 | `GET` | `/api/user-tags` | 是 | 无 | 获取当前用户标签。 |
 | `POST` | `/api/user-tags/add` | 是 | `name` 必填，不超过 12 个字 | 添加用户标签，返回最新标签列表。 |
 | `POST` | `/api/user-tags/delete` | 是 | `name` 必填 | 删除用户标签，返回最新标签列表。 |
-| `POST` | `/api/copywriting/generate` | 是 | `scene` 必填，`mood` 可选，`style` 可选，`keywords` 可选 | 调用 AI 服务生成朋友圈文案，并保存历史记录。 |
+| `POST` | `/api/copywriting/generate` | 是 | `scene` 必填，`mood` 可选，`style` 可选，`keywords` 可选 | 调用 AI 服务生成AI文案，并保存历史记录。 |
 | `POST` | `/api/copywriting/optimize` | 是 | `recordId` 或 `id` 必填，`message` 必填 | 按用户要求继续优化文案，更新当前文案内容，并保存优化过程。 |
 | `GET` / `POST` | `/api/copywriting/steps` | 是 | `recordId` 或 `id` 必填 | 获取某条文案的生成和优化过程。 |
 | `GET` / `POST` | `/api/copywriting/history` | 是 | 无 | 获取当前用户最近 50 条文案历史。 |
@@ -215,7 +215,7 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `content` | `string` | AI 生成的朋友圈文案。 |
+| `content` | `string` | AI 生成的文案。 |
 | `recordId` | `number` | 保存后的文案记录 ID；保存失败时可能为 `0`。 |
 | `keywords` | `string` | 本次请求传入并保存的关键词，可为空；用户标签只作为隐藏生成上下文使用，不写入该字段。 |
 | `saved` | `boolean` | 是否成功保存历史记录。 |

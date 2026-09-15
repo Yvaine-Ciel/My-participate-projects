@@ -3,15 +3,15 @@
 
 	export default {
 		onLaunch: function() {
-			console.log('Moment Copywriter Launch')
+			console.log('AI Copywriter Launch')
 			this.loadLoginUser()
 		},
 		onShow: function() {
-			console.log('Moment Copywriter Show')
+			console.log('AI Copywriter Show')
 			this.loadLoginUser()
 		},
 		onHide: function() {
-			console.log('Moment Copywriter Hide')
+			console.log('AI Copywriter Hide')
 		},
 		methods: {
 			loadLoginUser() {

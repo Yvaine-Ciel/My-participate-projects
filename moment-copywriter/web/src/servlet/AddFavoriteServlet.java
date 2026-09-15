@@ -29,14 +29,14 @@ public class AddFavoriteServlet extends BaseApiServlet {
 
         if (recordId <= 0) {
             writeFail(response, HttpServletResponse.SC_BAD_REQUEST,
-                    "recordId is required");
+                    "文案记录ID不能为空");
             return;
         }
 
         boolean success = new FavoriteDao().add(userId, recordId);
         if (!success) {
             writeFail(response, HttpServletResponse.SC_NOT_FOUND,
-                    "Record not found");
+                    "文案记录不存在");
             return;
         }
 

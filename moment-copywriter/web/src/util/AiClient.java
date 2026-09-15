@@ -37,19 +37,19 @@ public class AiClient {
         return MODEL;
     }
 
-    // 生成朋友圈文案
-    public String generateMomentCopywriting(
+    // 生成文案
+    public String generateAiCopywriting(
             String scene,
             String mood,
             String style,
             String keywords
     ) throws Exception {
         if (isBlank(API_KEY)) {
-            throw new IllegalStateException("Environment variable AI_API_KEY is required");
+            throw new IllegalStateException("缺少 AI_API_KEY 环境变量");
         }
 
         if (isBlank(MODEL)) {
-            throw new IllegalStateException("Environment variable AI_MODEL is required");
+            throw new IllegalStateException("缺少 AI_MODEL 环境变量");
         }
 
         Map<String, Object> payload = new HashMap<>();
@@ -75,14 +75,14 @@ public class AiClient {
         String responseBody = readResponseBody(connection, statusCode);
 
         if (statusCode < 200 || statusCode >= 300) {
-            throw new IOException("AI service error: HTTP " + statusCode);
+            throw new IOException("AI 服务返回错误：HTTP " + statusCode);
         }
 
         return parseContent(responseBody);
     }
 
-    // 优化朋友圈文案
-    public String optimizeMomentCopywriting(
+    // 优化文案
+    public String optimizeAiCopywriting(
             String scene,
             String mood,
             String style,
@@ -91,11 +91,11 @@ public class AiClient {
             String instruction
     ) throws Exception {
         if (isBlank(API_KEY)) {
-            throw new IllegalStateException("Environment variable AI_API_KEY is required");
+            throw new IllegalStateException("缺少 AI_API_KEY 环境变量");
         }
 
         if (isBlank(MODEL)) {
-            throw new IllegalStateException("Environment variable AI_MODEL is required");
+            throw new IllegalStateException("缺少 AI_MODEL 环境变量");
         }
 
         Map<String, Object> payload = new HashMap<>();
@@ -128,7 +128,7 @@ public class AiClient {
         String responseBody = readResponseBody(connection, statusCode);
 
         if (statusCode < 200 || statusCode >= 300) {
-            throw new IOException("AI service error: HTTP " + statusCode);
+            throw new IOException("AI 服务返回错误：HTTP " + statusCode);
         }
 
         return parseContent(responseBody);
@@ -147,8 +147,8 @@ public class AiClient {
         system.put("role", "system");
         system.put(
                 "content",
-                "You are a professional Chinese Moments copywriter. "
-                        + "Return only the generated captions."
+                "You are a professional Chinese AI copywriting assistant. "
+                        + "Return only the generated copywriting."
         );
         messages.add(system);
 
@@ -175,9 +175,9 @@ public class AiClient {
         system.put("role", "system");
         system.put(
                 "content",
-                "You are a professional Chinese Moments copywriter. "
-                        + "Revise the captions according to the user's instruction. "
-                        + "Return only the revised captions."
+                "You are a professional Chinese AI copywriting assistant. "
+                        + "Revise the copywriting according to the user's instruction. "
+                        + "Return only the revised copywriting."
         );
         messages.add(system);
 
@@ -203,7 +203,7 @@ public class AiClient {
             String style,
             String keywords
     ) {
-        return "Write 3 Chinese WeChat Moments captions.\n"
+        return "Write 3 pieces of Chinese AI copywriting.\n"
                 + "Scene: " + valueOrDefault(scene) + "\n"
                 + "Mood: " + valueOrDefault(mood) + "\n"
                 + "Style: " + valueOrDefault(style) + "\n"
@@ -220,12 +220,12 @@ public class AiClient {
             String currentContent,
             String instruction
     ) {
-        return "Optimize these Chinese WeChat Moments captions.\n"
+        return "Optimize this Chinese AI copywriting.\n"
                 + "Original scene: " + valueOrDefault(scene) + "\n"
                 + "Mood: " + valueOrDefault(mood) + "\n"
                 + "Style: " + valueOrDefault(style) + "\n"
                 + "Keywords: " + valueOrDefault(keywords) + "\n"
-                + "Current captions:\n" + valueOrDefault(currentContent) + "\n"
+                + "Current copywriting:\n" + valueOrDefault(currentContent) + "\n"
                 + "User instruction: " + valueOrDefault(instruction) + "\n"
                 + "Rules: keep the same topic, follow the instruction, natural, short, friendly, no markdown.";
     }
@@ -269,18 +269,18 @@ public class AiClient {
     private String parseContent(String body) throws IOException {
         Map<?, ?> result = GSON.fromJson(body, Map.class);
         if (result == null) {
-            throw new IOException("AI response is empty");
+            throw new IOException("AI 返回内容为空");
         }
 
         Object choicesObject = result.get("choices");
 
         if (!(choicesObject instanceof List)) {
-            throw new IOException("AI response does not contain choices");
+            throw new IOException("AI 返回结果缺少 choices");
         }
 
         List<?> choices = (List<?>) choicesObject;
         if (choices.isEmpty() || !(choices.get(0) instanceof Map)) {
-            throw new IOException("AI response choices are empty");
+            throw new IOException("AI 返回结果 choices 为空");
         }
 
         Map<?, ?> firstChoice = (Map<?, ?>) choices.get(0);
@@ -298,6 +298,6 @@ public class AiClient {
             return String.valueOf(text).trim();
         }
 
-        throw new IOException("AI response content is empty");
+        throw new IOException("AI 返回文案内容为空");
     }
 }
