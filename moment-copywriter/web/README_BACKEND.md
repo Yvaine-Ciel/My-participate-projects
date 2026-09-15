@@ -107,14 +107,6 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 
 手动启动时，思路也是一样的：先配置环境变量，再编译 Java 源码，然后把 Web 根目录和编译结果放到 Servlet 容器规定的位置，最后启动 Tomcat。
 
-健康检查接口的相对路径是：
-
-```text
-/api/health
-```
-
-完整访问地址由实际部署的服务器地址、端口和应用上下文决定。
-
 ## 前后端运行关系
 
 前端和后端是分开运行的：
@@ -159,7 +151,6 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 
 | 方法 | 路径 | 是否需要登录 | 参数 | 说明 |
 | --- | --- | --- | --- | --- |
-| `GET` | `/api/health` | 否 | 无 | 健康检查，确认后端是否启动。 |
 | `POST` | `/api/register` | 否 | `username` 必填，`password` 必填，`phone` 可选 | 注册用户。 |
 | `POST` | `/api/login` | 否 | `username` 必填，`password` 必填 | 登录用户，成功后写入 Session。 |
 | `POST` | `/api/logout` | 否 | 无 | 退出登录，销毁当前 Session。 |
@@ -179,13 +170,6 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 | `OPTIONS` | 所有接口 | 否 | 无 | 跨域预检请求。 |
 
 ## 接口返回数据
-
-`GET /api/health` 成功时 `data` 包含：
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `status` | `string` | 服务状态。 |
-| `service` | `string` | 服务名称。 |
 
 `POST /api/register` 成功时 `data` 包含：
 

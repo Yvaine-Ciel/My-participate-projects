@@ -188,14 +188,6 @@ web/start-backend.bat
 .\start-backend.bat --check
 ```
 
-后端健康检查接口的相对路径：
-
-```text
-/api/health
-```
-
-完整访问地址由实际服务器地址、端口和应用上下文决定。
-
 ## 启动前端
 
 使用 HBuilderX 打开项目根目录，然后运行到微信开发者工具。
@@ -235,7 +227,6 @@ common/config.js
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/api/health` | 健康检查。 |
 | `POST` | `/api/register` | 注册用户。 |
 | `POST` | `/api/login` | 登录用户。 |
 | `POST` | `/api/logout` | 退出登录。 |
