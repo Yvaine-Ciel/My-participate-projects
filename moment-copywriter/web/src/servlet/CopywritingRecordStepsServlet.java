@@ -1,3 +1,4 @@
+// 管理文案步骤查询逻辑
 package servlet;
 
 import dao.CopywritingRecordDao;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/steps")
 public class CopywritingRecordStepsServlet extends BaseApiServlet {
+    // 处理查询步骤请求
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -21,6 +23,7 @@ public class CopywritingRecordStepsServlet extends BaseApiServlet {
         handle(request, response, new HashMap<>());
     }
 
+    // 处理带请求体的查询步骤
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -29,6 +32,7 @@ public class CopywritingRecordStepsServlet extends BaseApiServlet {
         handle(request, response, readBody(request));
     }
 
+    // 执行步骤查询逻辑
     private void handle(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -56,6 +60,7 @@ public class CopywritingRecordStepsServlet extends BaseApiServlet {
         writeSuccess(response, new CopywritingRecordStepDao().listByRecordId(recordId));
     }
 
+    // 读取文案记录 ID
     private int recordId(HttpServletRequest request, Map<String, Object> body) {
         int id = JsonUtil.getInt(request, body, "recordId", 0);
         if (id > 0) {

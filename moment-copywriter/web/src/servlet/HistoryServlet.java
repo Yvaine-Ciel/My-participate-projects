@@ -1,3 +1,4 @@
+// 管理历史列表逻辑
 package servlet;
 
 import dao.CopywritingRecordDao;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/history")
 public class HistoryServlet extends BaseApiServlet {
+    // 查询历史列表
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -19,6 +21,7 @@ public class HistoryServlet extends BaseApiServlet {
         handle(request, response, new HashMap<>());
     }
 
+    // 处理带请求体的历史查询
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -27,6 +30,7 @@ public class HistoryServlet extends BaseApiServlet {
         handle(request, response, readBody(request));
     }
 
+    // 执行历史列表查询
     private void handle(
             HttpServletRequest request,
             HttpServletResponse response,

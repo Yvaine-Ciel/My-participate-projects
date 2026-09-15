@@ -1,3 +1,4 @@
+// 管理取消收藏逻辑
 package servlet;
 
 import dao.FavoriteDao;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/favorite/delete")
 public class DeleteFavoriteServlet extends BaseApiServlet {
+    // 处理取消收藏请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -20,6 +22,7 @@ public class DeleteFavoriteServlet extends BaseApiServlet {
         handle(request, response);
     }
 
+    // 处理删除方式取消收藏
     @Override
     protected void doDelete(
             HttpServletRequest request,
@@ -28,6 +31,7 @@ public class DeleteFavoriteServlet extends BaseApiServlet {
         handle(request, response);
     }
 
+    // 执行取消收藏逻辑
     private void handle(
             HttpServletRequest request,
             HttpServletResponse response
@@ -59,6 +63,7 @@ public class DeleteFavoriteServlet extends BaseApiServlet {
         writeSuccess(response, data);
     }
 
+    // 读取文案记录 ID
     private int recordId(HttpServletRequest request, Map<String, Object> body) {
         int id = JsonUtil.getInt(request, body, "recordId", 0);
         if (id > 0) {

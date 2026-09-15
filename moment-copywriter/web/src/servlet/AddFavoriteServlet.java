@@ -1,3 +1,4 @@
+// 管理添加收藏逻辑
 package servlet;
 
 import dao.FavoriteDao;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/favorite/add")
 public class AddFavoriteServlet extends BaseApiServlet {
+    // 处理添加收藏请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -44,6 +46,7 @@ public class AddFavoriteServlet extends BaseApiServlet {
         writeSuccess(response, data);
     }
 
+    // 读取文案记录 ID
     private int recordId(HttpServletRequest request, Map<String, Object> body) {
         int id = JsonUtil.getInt(request, body, "recordId", 0);
         if (id > 0) {

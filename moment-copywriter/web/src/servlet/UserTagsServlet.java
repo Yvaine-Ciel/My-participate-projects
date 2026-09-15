@@ -1,3 +1,4 @@
+// 管理用户标签列表逻辑
 package servlet;
 
 import dao.UserTagDao;
@@ -9,6 +10,7 @@ import java.io.IOException;
 
 @WebServlet("/api/user-tags")
 public class UserTagsServlet extends BaseApiServlet {
+    // 查询用户标签列表
     @Override
     protected void doGet(
             HttpServletRequest request,

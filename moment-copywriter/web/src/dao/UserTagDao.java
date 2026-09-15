@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserTagDao {
+    // 查询用户标签
     public List<String> listByUserId(int userId) {
         List<String> tags = new ArrayList<>();
         String sql = "SELECT name FROM user_tags WHERE user_id = ? ORDER BY create_time ASC, id ASC";
@@ -31,6 +32,7 @@ public class UserTagDao {
         return tags;
     }
 
+    // 新增用户标签
     public boolean add(int userId, String name) {
         if (exists(userId, name)) {
             return false;
@@ -52,6 +54,7 @@ public class UserTagDao {
         return false;
     }
 
+    // 删除用户标签
     public boolean remove(int userId, String name) {
         String sql = "DELETE FROM user_tags WHERE user_id = ? AND name = ?";
 
@@ -69,6 +72,7 @@ public class UserTagDao {
         return false;
     }
 
+    // 判断标签是否存在
     private boolean exists(int userId, String name) {
         String sql = "SELECT id FROM user_tags WHERE user_id = ? AND name = ?";
 

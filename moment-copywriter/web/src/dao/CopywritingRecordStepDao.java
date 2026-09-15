@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CopywritingRecordStepDao {
+    // 新增优化步骤
     public boolean add(int recordId, int stepNo, String userMessage, String generatedContent) {
         String sql = "INSERT INTO copywriting_record_steps("
                 + "record_id, step_no, user_message, generated_content"
@@ -31,6 +32,7 @@ public class CopywritingRecordStepDao {
         return false;
     }
 
+    // 查询记录优化步骤
     public List<CopywritingRecordStep> listByRecordId(int recordId) {
         List<CopywritingRecordStep> steps = new ArrayList<>();
         String sql = "SELECT id, record_id, step_no, user_message, generated_content, create_time "
@@ -54,6 +56,7 @@ public class CopywritingRecordStepDao {
         return steps;
     }
 
+    // 计算下一步序号
     public int nextStepNo(int recordId) {
         String sql = "SELECT ISNULL(MAX(step_no), 0) + 1 AS next_step_no "
                 + "FROM copywriting_record_steps WHERE record_id = ?";
@@ -76,6 +79,7 @@ public class CopywritingRecordStepDao {
         return 1;
     }
 
+    // 数据库结果转步骤对象
     private CopywritingRecordStep mapStep(ResultSet rs) throws Exception {
         CopywritingRecordStep step = new CopywritingRecordStep();
         step.setId(rs.getInt("id"));

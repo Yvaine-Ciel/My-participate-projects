@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FavoriteDao {
+    // 添加收藏记录
     public boolean add(int userId, int recordId) {
         if (!recordBelongsToUser(userId, recordId)) {
             return false;
@@ -35,6 +36,7 @@ public class FavoriteDao {
         return false;
     }
 
+    // 删除收藏记录
     public boolean remove(int userId, int recordId) {
         if (userId <= 0 || recordId <= 0) {
             return false;
@@ -77,6 +79,7 @@ public class FavoriteDao {
         return false;
     }
 
+    // 查询用户收藏列表
     public List<CopywritingRecord> listByUserId(int userId) {
         List<CopywritingRecord> list = new ArrayList<>();
         String sql = "SELECT TOP 50 r.id, r.user_id, r.scene, r.mood, r.style, r.keywords, "
@@ -105,6 +108,7 @@ public class FavoriteDao {
         return list;
     }
 
+    // 判断收藏是否存在
     public boolean exists(int userId, int recordId) {
         String sql = "SELECT id FROM favorites WHERE user_id = ? AND record_id = ?";
 
@@ -125,6 +129,7 @@ public class FavoriteDao {
         return false;
     }
 
+    // 判断记录归属用户
     private boolean recordBelongsToUser(int userId, int recordId) {
         if (userId <= 0 || recordId <= 0) {
             return false;
@@ -149,6 +154,7 @@ public class FavoriteDao {
         return false;
     }
 
+    // 数据库结果转文案对象
     private CopywritingRecord mapRecord(ResultSet rs) throws Exception {
         CopywritingRecord record = new CopywritingRecord();
         record.setId(rs.getInt("id"));

@@ -1,3 +1,4 @@
+// 管理删除用户标签逻辑
 package servlet;
 
 import dao.UserTagDao;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @WebServlet("/api/user-tags/delete")
 public class DeleteUserTagServlet extends BaseApiServlet {
+    // 处理删除标签请求
     @Override
     protected void doPost(
             HttpServletRequest request,

@@ -1,3 +1,4 @@
+// 管理用户登录逻辑
 package servlet;
 
 import dao.UserDao;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @WebServlet("/api/login")
 public class LoginServlet extends BaseApiServlet {
+    // 处理登录请求
     @Override
     protected void doPost(
             HttpServletRequest request,

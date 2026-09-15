@@ -32,10 +32,12 @@ public class AiClient {
                     "deepseek-v4-flash"
             );
 
+    // 获取当前 AI 模型
     public String getModel() {
         return MODEL;
     }
 
+    // 生成朋友圈文案
     public String generateMomentCopywriting(
             String scene,
             String mood,
@@ -79,6 +81,7 @@ public class AiClient {
         return parseContent(responseBody);
     }
 
+    // 优化朋友圈文案
     public String optimizeMomentCopywriting(
             String scene,
             String mood,
@@ -131,6 +134,7 @@ public class AiClient {
         return parseContent(responseBody);
     }
 
+    // 构建生成消息
     private List<Map<String, String>> buildMessages(
             String scene,
             String mood,
@@ -156,6 +160,7 @@ public class AiClient {
         return messages;
     }
 
+    // 构建优化消息
     private List<Map<String, String>> buildOptimizeMessages(
             String scene,
             String mood,
@@ -191,6 +196,7 @@ public class AiClient {
         return messages;
     }
 
+    // 构建生成提示词
     private String buildPrompt(
             String scene,
             String mood,
@@ -205,6 +211,7 @@ public class AiClient {
                 + "Rules: natural, short, friendly, no markdown.";
     }
 
+    // 构建优化提示词
     private String buildOptimizePrompt(
             String scene,
             String mood,
@@ -223,6 +230,7 @@ public class AiClient {
                 + "Rules: keep the same topic, follow the instruction, natural, short, friendly, no markdown.";
     }
 
+    // 空值转默认文本
     private String valueOrDefault(String value) {
         if (isBlank(value)) {
             return "not provided";
@@ -230,10 +238,12 @@ public class AiClient {
         return value;
     }
 
+    // 判断字符串为空
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
 
+    // 读取 AI 响应体
     private String readResponseBody(HttpURLConnection connection, int statusCode)
             throws IOException {
         InputStream inputStream = statusCode >= 200 && statusCode < 300
@@ -255,6 +265,7 @@ public class AiClient {
         }
     }
 
+    // 解析 AI 返回内容
     private String parseContent(String body) throws IOException {
         Map<?, ?> result = GSON.fromJson(body, Map.class);
         if (result == null) {

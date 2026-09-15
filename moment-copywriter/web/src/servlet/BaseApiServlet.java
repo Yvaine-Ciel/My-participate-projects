@@ -1,3 +1,4 @@
+// 管理 API 通用逻辑
 package servlet;
 
 import entity.User;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public abstract class BaseApiServlet extends HttpServlet {
+    // 处理跨域预检请求
     @Override
     protected void doOptions(
             HttpServletRequest request,
@@ -22,22 +24,26 @@ public abstract class BaseApiServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
+    // 读取请求体
     protected Map<String, Object> readBody(HttpServletRequest request)
             throws IOException {
         return JsonUtil.readJsonObject(request);
     }
 
+    // 写入成功响应
     protected void writeSuccess(HttpServletResponse response, Object data)
             throws IOException {
         JsonUtil.writeJson(response, JsonUtil.success(data));
     }
 
+    // 写入失败响应
     protected void writeFail(HttpServletResponse response, int status, String message)
             throws IOException {
         response.setStatus(status);
         JsonUtil.writeJson(response, JsonUtil.fail(message));
     }
 
+    // 设置请求通用处理
     @Override
     protected void service(
             HttpServletRequest request,
@@ -48,6 +54,7 @@ public abstract class BaseApiServlet extends HttpServlet {
         super.service(request, response);
     }
 
+    // 获取当前登录用户
     protected User currentUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -60,11 +67,13 @@ public abstract class BaseApiServlet extends HttpServlet {
         return null;
     }
 
+    // 获取当前用户 ID
     protected int currentUserId(HttpServletRequest request) {
         User user = currentUser(request);
         return user == null ? 0 : user.getId();
     }
 
+    // 要求用户已登录
     protected int requireUserId(
             HttpServletRequest request,
             HttpServletResponse response

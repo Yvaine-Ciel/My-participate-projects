@@ -1,3 +1,4 @@
+// 管理文案优化逻辑
 package servlet;
 
 import dao.CopywritingRecordDao;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/optimize")
 public class OptimizeCopywritingServlet extends BaseApiServlet {
+    // 处理文案优化请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -91,6 +93,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         writeSuccess(response, data);
     }
 
+    // 读取文案记录 ID
     private int recordId(HttpServletRequest request, Map<String, Object> body) {
         int id = JsonUtil.getInt(request, body, "recordId", 0);
         if (id > 0) {
@@ -100,6 +103,7 @@ public class OptimizeCopywritingServlet extends BaseApiServlet {
         return JsonUtil.getInt(request, body, "id", 0);
     }
 
+    // 拼接用户标签关键词
     private String appendUserTags(String keywords, List<String> tags) {
         if (tags == null || tags.isEmpty()) {
             return keywords;

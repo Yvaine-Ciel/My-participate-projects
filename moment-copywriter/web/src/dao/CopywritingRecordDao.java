@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CopywritingRecordDao {
+    // 新增文案记录
     public int add(CopywritingRecord record) {
         String sql = "INSERT INTO copywriting_records("
                 + "user_id, scene, mood, style, keywords, generated_content, ai_model"
@@ -50,6 +51,7 @@ public class CopywritingRecordDao {
         return 0;
     }
 
+    // 查询用户历史记录
     public List<CopywritingRecord> listByUserId(int userId) {
         List<CopywritingRecord> list = new ArrayList<>();
         String sql = "SELECT TOP 50 r.id, r.user_id, r.scene, r.mood, r.style, r.keywords, "
@@ -80,6 +82,7 @@ public class CopywritingRecordDao {
         return list;
     }
 
+    // 按 ID 查询文案记录
     public CopywritingRecord findById(int id, int userId) {
         String sql = "SELECT r.id, r.user_id, r.scene, r.mood, r.style, r.keywords, "
                 + "r.generated_content, r.ai_model, r.create_time, "
@@ -109,6 +112,7 @@ public class CopywritingRecordDao {
         return null;
     }
 
+    // 更新生成内容
     public boolean updateGeneratedContent(int id, int userId, String generatedContent) {
         String sql = "UPDATE copywriting_records SET generated_content = ? "
                 + "WHERE id = ? AND user_id = ?";
@@ -128,6 +132,7 @@ public class CopywritingRecordDao {
         return false;
     }
 
+    // 删除单条历史记录
     public boolean deleteById(int id, int userId) {
         if (id <= 0 || userId <= 0) {
             return false;
@@ -164,6 +169,7 @@ public class CopywritingRecordDao {
         return false;
     }
 
+    // 清空用户历史记录
     public int deleteAllByUserId(int userId) {
         if (userId <= 0) {
             return 0;
@@ -224,6 +230,7 @@ public class CopywritingRecordDao {
         return 0;
     }
 
+    // 数据库结果转文案对象
     private CopywritingRecord mapRecord(ResultSet rs) throws Exception {
         CopywritingRecord record = new CopywritingRecord();
         record.setId(rs.getInt("id"));

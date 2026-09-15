@@ -4,6 +4,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class CorsUtil {
+    // 设置带凭证跨域响应头
     public static void allowCors(HttpServletRequest request, HttpServletResponse response) {
         String origin = request.getHeader("Origin");
         if (origin == null || origin.trim().isEmpty()) {
@@ -20,6 +21,7 @@ public class CorsUtil {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
+    // 设置通用跨域响应头
     public static void allowCors(HttpServletResponse response) {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
@@ -27,6 +29,7 @@ public class CorsUtil {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
+    // 判断预检请求
     public static boolean isPreflight(HttpServletRequest request) {
         return "OPTIONS".equalsIgnoreCase(request.getMethod());
     }

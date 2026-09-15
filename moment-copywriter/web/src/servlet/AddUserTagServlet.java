@@ -1,3 +1,4 @@
+// 管理添加用户标签逻辑
 package servlet;
 
 import dao.UserTagDao;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @WebServlet("/api/user-tags/add")
 public class AddUserTagServlet extends BaseApiServlet {
+    // 处理添加标签请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -44,6 +46,7 @@ public class AddUserTagServlet extends BaseApiServlet {
         writeSuccess(response, data);
     }
 
+    // 校验标签名称
     private boolean validName(String name) {
         return name != null && name.length() <= 12;
     }

@@ -1,3 +1,4 @@
+// 管理收藏列表逻辑
 package servlet;
 
 import dao.FavoriteDao;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/favorites")
 public class FavoritesServlet extends BaseApiServlet {
+    // 查询收藏列表
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -19,6 +21,7 @@ public class FavoritesServlet extends BaseApiServlet {
         handle(request, response, new HashMap<>());
     }
 
+    // 处理带请求体的收藏查询
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -27,6 +30,7 @@ public class FavoritesServlet extends BaseApiServlet {
         handle(request, response, readBody(request));
     }
 
+    // 执行收藏列表查询
     private void handle(
             HttpServletRequest request,
             HttpServletResponse response,

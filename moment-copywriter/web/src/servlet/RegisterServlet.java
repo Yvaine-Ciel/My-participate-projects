@@ -1,3 +1,4 @@
+// 管理用户注册逻辑
 package servlet;
 
 import dao.UserDao;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @WebServlet("/api/register")
 public class RegisterServlet extends BaseApiServlet {
+    // 处理注册请求
     @Override
     protected void doPost(
             HttpServletRequest request,

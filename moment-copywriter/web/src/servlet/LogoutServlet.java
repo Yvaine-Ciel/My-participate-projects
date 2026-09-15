@@ -1,3 +1,4 @@
+// 管理用户退出逻辑
 package servlet;
 
 import javax.servlet.annotation.WebServlet;
@@ -8,6 +9,7 @@ import java.io.IOException;
 
 @WebServlet("/api/logout")
 public class LogoutServlet extends BaseApiServlet {
+    // 处理退出登录请求
     @Override
     protected void doPost(
             HttpServletRequest request,

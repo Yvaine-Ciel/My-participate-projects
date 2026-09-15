@@ -16,6 +16,7 @@ public class JsonUtil {
     private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
     }.getType();
 
+    // JSON 请求体转 Map
     public static Map<String, Object> readJsonObject(HttpServletRequest request)
             throws IOException {
         String contentType = request.getContentType();
@@ -45,6 +46,7 @@ public class JsonUtil {
         }
     }
 
+    // 读取字符串参数
     public static String getString(
             HttpServletRequest request,
             Map<String, Object> body,
@@ -64,6 +66,7 @@ public class JsonUtil {
         return text.isEmpty() ? null : text;
     }
 
+    // 读取整数参数
     public static int getInt(
             HttpServletRequest request,
             Map<String, Object> body,
@@ -87,12 +90,14 @@ public class JsonUtil {
         return defaultValue;
     }
 
+    // 写入 JSON 响应
     public static void writeJson(HttpServletResponse response, Object data)
             throws IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(GSON.toJson(data));
     }
 
+    // 构建成功响应
     public static Map<String, Object> success(Object data) {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -101,6 +106,7 @@ public class JsonUtil {
         return result;
     }
 
+    // 构建失败响应
     public static Map<String, Object> fail(String message) {
         Map<String, Object> result = new HashMap<>();
         result.put("success", false);
@@ -108,6 +114,7 @@ public class JsonUtil {
         return result;
     }
 
+    // 安全转换整数
     private static int parseInt(String value, int defaultValue) {
         try {
             return Integer.parseInt(value.trim());

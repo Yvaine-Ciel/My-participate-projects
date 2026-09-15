@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class UserDao {
+    // 用户登录校验
     public User login(String phone, String password) {
         String sql = "SELECT id, username, phone, role, create_time, "
                 + "password_hash, password_salt FROM users WHERE phone = ?";
@@ -39,6 +40,7 @@ public class UserDao {
         return null;
     }
 
+    // 注册新用户
     public boolean register(String username, String password, String phone) {
         if (usernameExists(username) || phoneExists(phone)) {
             return false;
@@ -66,6 +68,7 @@ public class UserDao {
         return false;
     }
 
+    // 判断手机号是否存在
     public boolean phoneExists(String phone) {
         String sql = "SELECT id FROM users WHERE phone = ?";
 
@@ -85,6 +88,7 @@ public class UserDao {
         return false;
     }
 
+    // 判断用户名是否存在
     public boolean usernameExists(String username) {
         String sql = "SELECT id FROM users WHERE username = ?";
 
@@ -104,6 +108,7 @@ public class UserDao {
         return false;
     }
 
+    // 按 ID 查询用户
     public User findById(int id) {
         String sql = "SELECT id, username, phone, role, create_time FROM users WHERE id = ?";
 
@@ -125,6 +130,7 @@ public class UserDao {
         return null;
     }
 
+    // 数据库结果转用户对象
     private User mapUser(ResultSet rs) throws Exception {
         User user = new User();
         user.setId(rs.getInt("id"));

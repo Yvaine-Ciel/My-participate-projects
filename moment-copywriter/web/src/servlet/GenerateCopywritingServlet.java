@@ -1,3 +1,4 @@
+// 管理文案生成逻辑
 package servlet;
 
 import dao.CopywritingRecordDao;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/generate")
 public class GenerateCopywritingServlet extends BaseApiServlet {
+    // 处理文案生成请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -83,6 +85,7 @@ public class GenerateCopywritingServlet extends BaseApiServlet {
         writeSuccess(response, data);
     }
 
+    // 拼接用户标签关键词
     private String appendUserTags(String keywords, List<String> tags) {
         if (tags == null || tags.isEmpty()) {
             return keywords;

@@ -1,3 +1,4 @@
+// 管理清空历史逻辑
 package servlet;
 
 import dao.CopywritingRecordDao;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @WebServlet("/api/copywriting/clear-history")
 public class ClearHistoryServlet extends BaseApiServlet {
+    // 处理清空历史请求
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -19,6 +21,7 @@ public class ClearHistoryServlet extends BaseApiServlet {
         handle(request, response);
     }
 
+    // 处理删除方式清空请求
     @Override
     protected void doDelete(
             HttpServletRequest request,
@@ -27,6 +30,7 @@ public class ClearHistoryServlet extends BaseApiServlet {
         handle(request, response);
     }
 
+    // 执行清空历史逻辑
     private void handle(
             HttpServletRequest request,
             HttpServletResponse response

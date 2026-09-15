@@ -1,3 +1,4 @@
+// 管理当前用户逻辑
 package servlet;
 
 import entity.User;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @WebServlet("/api/current-user")
 public class CurrentUserServlet extends BaseApiServlet {
+    // 查询当前登录用户
     @Override
     protected void doGet(
             HttpServletRequest request,
