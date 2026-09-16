@@ -142,8 +142,8 @@
 				userTags: [],
 				categories: [
 					{
-						name: 'AI文案',
-						placeholder: '输入想生成的文案需求，例如：新品上线宣传，语气真诚有吸引力'
+						name: '朋友圈文案',
+						placeholder: '输入想发布的场景，例如：傍晚散步，晚风轻轻吹过，心情很好'
 					},
 					{
 						name: '节日祝福',
@@ -511,11 +511,11 @@
 				const time = this.currentTimeContext()
 				const profile = this.userProfile()
 
-				if (this.category === 'AI文案') {
+				if (this.category === '朋友圈文案') {
 					return [
-						time.label + '，围绕' + profile.daily + '写一段自然文案',
-						time.season + '主题的日常文案，写得真诚一点',
-						'写一段适合今天使用的AI文案，真诚自然，不夸张'
+						time.label + '，记录' + profile.daily + '写得自然一点',
+						time.season + '里的一个小瞬间，写得自然一点',
+						'今天适合发的朋友圈，真诚自然，不夸张'
 					]
 				}
 
