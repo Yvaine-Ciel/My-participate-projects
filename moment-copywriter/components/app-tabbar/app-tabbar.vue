@@ -34,6 +34,7 @@
 			}
 		},
 		methods: {
+			// 点击底部导航：切换到对应主页面，当前页不重复跳转
 			go(item) {
 				if (item.key === this.active) {
 					return

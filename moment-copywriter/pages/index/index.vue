@@ -198,9 +198,11 @@
 			this.refreshUserTags()
 		},
 		methods: {
+			// 点击分类标签：切换当前文案类型，并带动占位文案和示例更新
 			chooseCategory(item) {
 				this.category = item.name
 			},
+			// 点击生成按钮：先确认登录，再提交生成请求
 			generateCopywriting() {
 				this.requireLogin().then(loggedIn => {
 					if (!loggedIn) {
@@ -210,6 +212,7 @@
 					this.submitGenerateCopywriting()
 				})
 			},
+			// 校验登录状态：本地无用户时尝试从后端恢复当前登录用户
 			requireLogin() {
 				if (isLoggedIn()) {
 					return Promise.resolve(true)
@@ -227,6 +230,7 @@
 					return false
 				})
 			},
+			// 提交生成文案：校验输入、请求后端生成，并打开结果详情
 			submitGenerateCopywriting() {
 				if (!this.scene.trim()) {
 					uni.showToast({
@@ -265,6 +269,7 @@
 					})
 				})
 			},
+			// 点击复制按钮：复制当前最新文案结果
 			copyResult() {
 				if (!this.result) {
 					return
@@ -274,6 +279,7 @@
 					data: this.result
 				})
 			},
+			// 打开详情弹层：把当前生成结果整理成详情展示对象
 			openDetail() {
 				if (!this.result) {
 					return
@@ -281,9 +287,11 @@
 
 				this.detailRecord = Object.assign({}, this.currentRecord)
 			},
+			// 关闭详情弹层
 			closeDetail() {
 				this.detailRecord = null
 			},
+			// 点击优化按钮：根据当前文案记录继续优化，并刷新最新结果
 			optimizeCopywriting() {
 				if (!this.recordId) {
 					uni.showToast({
@@ -319,6 +327,7 @@
 					})
 				})
 			},
+			// 点击收藏按钮：收藏时直接执行，取消收藏前先弹窗确认
 			toggleCurrentFavorite() {
 				if (!this.result) {
 					return
@@ -333,6 +342,7 @@
 
 				this.changeCurrentFavorite()
 			},
+			// 切换当前文案收藏状态：调用收藏接口并同步详情弹层状态
 			changeCurrentFavorite() {
 				toggleFavorite(Object.assign({}, this.currentRecord, {
 					favorite: this.favorite
@@ -354,6 +364,7 @@
 					})
 				})
 			},
+			// 取消收藏确认弹窗：用户确认后再执行传入动作
 			confirmRemoveFavorite(onConfirm) {
 				uni.showModal({
 					title: '取消收藏',
@@ -365,9 +376,11 @@
 					}
 				})
 			},
+			// 点击示例文案：把示例填入输入框
 			useExample(item) {
 				this.scene = item
 			},
+			// 页面显示时刷新用户标签：用于生成更贴近用户身份的示例和提示词
 			refreshUserTags() {
 				this.userTags = []
 				if (isLoggedIn()) {
@@ -381,6 +394,7 @@
 					}
 				}).catch(() => {})
 			},
+			// 拉取当前用户标签列表
 			loadUserTags() {
 				get('/api/user-tags').then(data => {
 					this.userTags = Array.isArray(data) ? data : []
@@ -388,6 +402,7 @@
 					this.userTags = []
 				})
 			},
+			// 组装生成接口的关键词：把用户输入和当前时间上下文一起传给后端
 			buildGenerateKeywords(scene) {
 				const text = String(scene === undefined ? this.scene : scene).trim()
 				const time = this.currentTimeContext()
@@ -398,9 +413,11 @@
 
 				return parts.filter(Boolean).join('；')
 			},
+			// 组装页面展示用关键词
 			buildDisplayKeywords(scene) {
 				return this.buildGenerateKeywords(scene)
 			},
+			// 生成当前时间上下文：用于示例文案和隐藏提示词
 			currentTimeContext() {
 				const now = new Date()
 				const month = now.getMonth() + 1
@@ -415,6 +432,7 @@
 					festival: this.festivalName(month, day)
 				}
 			},
+			// 根据月份判断季节名称
 			seasonName(month) {
 				if (month >= 3 && month <= 5) {
 					return '春天'
@@ -430,6 +448,7 @@
 
 				return '冬天'
 			},
+			// 根据日期匹配常见节日
 			festivalName(month, day) {
 				const key = (month < 10 ? '0' + month : month) + '-' + (day < 10 ? '0' + day : day)
 				const festivals = {
@@ -445,6 +464,7 @@
 
 				return festivals[key] || ''
 			},
+			// 根据用户标签推断身份画像，用于生成更贴合的示例场景
 			userProfile() {
 				const tagText = this.userTags.join(' ')
 
@@ -507,6 +527,7 @@
 					healing: '给自己的鼓励'
 				}
 			},
+			// 根据当前分类、时间和用户画像生成输入示例
 			buildExamples() {
 				const time = this.currentTimeContext()
 				const profile = this.userProfile()

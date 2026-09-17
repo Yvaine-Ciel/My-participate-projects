@@ -219,6 +219,7 @@
 			})
 		},
 		methods: {
+			// 校验登录状态：进入历史页前确认用户仍然有效登录
 			requireLogin() {
 				if (isLoggedIn()) {
 					return Promise.resolve(true)
@@ -236,15 +237,18 @@
 					return false
 				})
 			},
+			// 刷新收藏列表数据
 			refreshFavorites() {
 				return getFavorites().then(data => {
 					this.favorites = Array.isArray(data) ? data : []
 				})
 			},
+			// 切换“只看收藏”开关：根据开关状态重新加载列表
 			changeFavoriteFilter(event) {
 				this.onlyFavorites = event.detail.value
 				this.loadRecords(false)
 			},
+			// 加载当前列表：根据筛选状态选择历史或收藏接口
 			loadRecords(stopRefresh) {
 				if (this.onlyFavorites) {
 					this.loadFavorites(stopRefresh)
@@ -253,6 +257,7 @@
 
 				this.loadHistory(stopRefresh)
 			},
+			// 加载收藏文案列表
 			loadFavorites(stopRefresh) {
 				this.loading = true
 				this.refreshFavorites().then(() => {
@@ -271,6 +276,7 @@
 					})
 				})
 			},
+			// 加载历史文案列表
 			loadHistory(stopRefresh) {
 				this.loading = true
 				get('/api/copywriting/history').then(data => {
@@ -290,6 +296,7 @@
 					})
 				})
 			},
+			// 生成历史卡片标题：优先使用场景，其次关键词和风格
 			cardTitle(record) {
 				if (!record) {
 					return 'AI文案'
@@ -297,6 +304,7 @@
 
 				return record.displayScene || record.displayKeywords || record.displayStyle || 'AI文案'
 			},
+			// 展示文本前做一次兜底解码，减少乱码显示
 			displayText(value) {
 				if (value === null || value === undefined) {
 					return ''
@@ -314,6 +322,7 @@
 					return text
 				}
 			},
+			// 尝试把常见的 UTF-8 误解码文本还原
 			decodeMojibake(text) {
 				let encoded = ''
 
@@ -330,9 +339,11 @@
 
 				return decodeURIComponent(encoded)
 			},
+			// 判断文本是否像乱码
 			looksGarbled(text) {
 				return /[ÃÂäåæçèéïâ]/.test(text)
 			},
+			// 点击历史卡片：打开详情，并在历史模式下加载生成/优化步骤
 			openDetail(record) {
 				if (!record) {
 					return
@@ -346,11 +357,13 @@
 					this.loadDetailSteps(record.id)
 				}
 			},
+			// 关闭详情弹层并重置步骤分页
 			closeDetail() {
 				this.detailRecord = null
 				this.detailSteps = []
 				this.detailStepIndex = 0
 			},
+			// 加载某条文案的完整生成和优化过程
 			loadDetailSteps(recordId) {
 				post('/api/copywriting/steps', {
 					recordId
@@ -364,16 +377,19 @@
 					})
 				})
 			},
+			// 点击上一页：查看上一步生成/优化记录
 			prevDetailStep() {
 				if (this.detailStepIndex > 0) {
 					this.detailStepIndex--
 				}
 			},
+			// 点击下一页：查看下一步生成/优化记录
 			nextDetailStep() {
 				if (this.detailStepIndex < this.detailSteps.length - 1) {
 					this.detailStepIndex++
 				}
 			},
+			// 复制列表中的文案内容
 			copyRecord(record) {
 				const content = record && (record.displayGeneratedContent || record.generatedContent)
 				if (!content) {
@@ -384,6 +400,7 @@
 					data: content
 				})
 			},
+			// 点击详情复制：复制当前详情页正在展示的文案
 			copyDetail() {
 				if (!this.detailGeneratedContent || this.detailGeneratedContent === '无') {
 					return
@@ -393,6 +410,7 @@
 					data: this.detailGeneratedContent
 				})
 			},
+			// 点击列表收藏按钮：收藏时直接执行，取消收藏前先确认
 			toggleRecordFavorite(record) {
 				if (isFavorite(record)) {
 					this.confirmRemoveFavorite(() => {
@@ -403,6 +421,7 @@
 
 				this.changeRecordFavorite(record)
 			},
+			// 切换列表项收藏状态，并同步本地列表
 			changeRecordFavorite(record) {
 				toggleFavorite(record).then(favorite => {
 					this.applyFavoriteState(record, favorite)
@@ -418,6 +437,7 @@
 					})
 				})
 			},
+			// 点击详情收藏按钮：对当前详情记录切换收藏状态
 			toggleDetailFavorite() {
 				if (!this.detailRecord) {
 					return
@@ -432,6 +452,7 @@
 
 				this.changeDetailFavorite()
 			},
+			// 切换详情记录收藏状态，并保持详情和列表状态一致
 			changeDetailFavorite() {
 				toggleFavorite(this.detailRecord).then(favorite => {
 					this.applyFavoriteState(this.detailRecord, favorite)
@@ -453,6 +474,7 @@
 					})
 				})
 			},
+			// 取消收藏确认弹窗：用户确认后再执行传入动作
 			confirmRemoveFavorite(onConfirm) {
 				uni.showModal({
 					title: '取消收藏',
@@ -464,6 +486,7 @@
 					}
 				})
 			},
+			// 收藏筛选模式下取消收藏后，刷新收藏列表
 			refreshFavoriteListAfterRemove(favorite) {
 				if (favorite || !this.onlyFavorites) {
 					return
@@ -471,6 +494,7 @@
 
 				this.refreshFavorites().catch(() => {})
 			},
+			// 把收藏状态同步到历史列表、详情记录和收藏列表
 			applyFavoriteState(record, favorite) {
 				const id = record && record.id
 				if (!id) {
@@ -495,6 +519,7 @@
 
 				this.favorites = this.favorites.filter(item => item.id !== id)
 			},
+			// 点击详情删除：删除当前打开的文案记录
 			deleteDetailRecord() {
 				if (!this.detailRecord) {
 					return
@@ -502,6 +527,7 @@
 
 				this.deleteRecord(this.detailRecord)
 			},
+			// 点击删除按钮：确认后删除历史记录并刷新列表
 			deleteRecord(record) {
 				uni.showModal({
 					title: '删除记录',
@@ -535,6 +561,7 @@
 					}
 				})
 			},
+			// 格式化列表展示时间
 			formatTime(value) {
 				if (!value) {
 					return ''

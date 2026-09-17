@@ -153,6 +153,7 @@
 			})
 		},
 		methods: {
+			// 点击收藏文案：登录后跳转到历史页的收藏筛选模式
 			goFavorites() {
 				if (!ensureLogin()) {
 					return
@@ -162,6 +163,7 @@
 					url: '/pages/history/history?favorite=1'
 				})
 			},
+			// 点击历史记录：登录后跳转到历史页
 			goHistory() {
 				if (!ensureLogin()) {
 					return
@@ -171,6 +173,7 @@
 					url: '/pages/history/history'
 				})
 			},
+			// 点击标签入口：登录后打开标签管理弹层
 			openTagPanel() {
 				if (!ensureLogin()) {
 					return
@@ -179,10 +182,12 @@
 				this.tagPanelVisible = true
 				this.loadTags()
 			},
+			// 关闭标签弹层，并清空输入框
 			closeTagPanel() {
 				this.tagPanelVisible = false
 				this.tagInput = ''
 			},
+			// 加载当前用户标签
 			loadTags() {
 				return get('/api/user-tags').then(data => {
 					this.userTags = Array.isArray(data) ? data : []
@@ -196,6 +201,7 @@
 					}
 				})
 			},
+			// 点击添加标签：校验后提交新增标签接口
 			addTag() {
 				const text = this.tagInput.trim()
 				if (!text) {
@@ -226,6 +232,7 @@
 					})
 				})
 			},
+			// 点击标签删除按钮：删除指定标签并刷新标签列表
 			removeTag(tag) {
 				post('/api/user-tags/delete', {
 					name: tag
@@ -238,6 +245,7 @@
 					})
 				})
 			},
+			// 点击清空历史：确认后清空历史记录，收藏文案会保留
 			clearHistory() {
 				if (!ensureLogin()) {
 					return
@@ -266,16 +274,19 @@
 					}
 				})
 			},
+			// 点击登录：跳转到登录页
 			goLogin() {
 				uni.navigateTo({
 					url: '/pages/login/login'
 				})
 			},
+			// 点击注册：跳转到注册页
 			goRegister() {
 				uni.navigateTo({
 					url: '/pages/register/register'
 				})
 			},
+			// 点击关于小程序：展示应用说明弹窗
 			showAbout() {
 				uni.showModal({
 					title: '关于小程序',
@@ -283,6 +294,7 @@
 					showCancel: false
 				})
 			},
+			// 点击退出登录：请求退出接口，失败时也清理本地登录状态
 			logout() {
 				post('/api/logout', {}, {
 					auth: false
@@ -292,6 +304,7 @@
 					this.clearAndGoHome()
 				})
 			},
+			// 清理本地用户状态并回到首页
 			clearAndGoHome() {
 				clearUser()
 				this.user = null
@@ -300,6 +313,7 @@
 					url: '/pages/index/index'
 				})
 			},
+			// 展示文本前做一次兜底解码，减少乱码显示
 			displayText(value) {
 				if (value === null || value === undefined) {
 					return ''
@@ -317,6 +331,7 @@
 					return text
 				}
 			},
+			// 尝试把常见的 UTF-8 误解码文本还原
 			decodeMojibake(text) {
 				let encoded = ''
 
@@ -333,6 +348,7 @@
 
 				return decodeURIComponent(encoded)
 			},
+			// 判断文本是否像乱码
 			looksGarbled(text) {
 				return /[ÃÂäåæçèéïâ]/.test(text)
 			}

@@ -151,8 +151,8 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 
 | 方法 | 路径 | 是否需要登录 | 参数 | 说明 |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/register` | 否 | `username` 必填，`password` 必填，`phone` 可选 | 注册用户。 |
-| `POST` | `/api/login` | 否 | `username` 必填，`password` 必填 | 登录用户，成功后写入 Session。 |
+| `POST` | `/api/register` | 否 | `username` 必填，`password` 必填，`phone` 必填 | 注册用户。 |
+| `POST` | `/api/login` | 否 | `phone` 必填，`password` 必填 | 登录用户，成功后写入 Session。 |
 | `POST` | `/api/logout` | 否 | 无 | 退出登录，销毁当前 Session。 |
 | `GET` | `/api/current-user` | 是 | 无 | 获取当前登录用户。 |
 | `GET` | `/api/user-tags` | 是 | 无 | 获取当前用户标签。 |
@@ -183,7 +183,7 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 | --- | --- | --- |
 | `id` | `number` | 用户 ID。 |
 | `username` | `string` | 用户名。 |
-| `phone` | `string` | 手机号，可为空。 |
+| `phone` | `string` | 手机号。 |
 | `role` | `string` | 用户角色。 |
 | `createTime` | `string` | 创建时间。 |
 
@@ -265,7 +265,7 @@ sqlcmd -S "<数据库服务名或地址>" -U "<用户名>" -P "<密码>" -C -i "
 | `username` | `NVARCHAR(50)` | 非空，唯一 | 用户名。 |
 | `password_hash` | `VARCHAR(64)` | 非空 | 加盐后的密码哈希，不保存明文密码。 |
 | `password_salt` | `VARCHAR(32)` | 非空 | 密码盐值。 |
-| `phone` | `NVARCHAR(20)` | 可空 | 手机号。 |
+| `phone` | `NVARCHAR(20)` | 接口层必填 | 手机号，用于登录。 |
 | `role` | `VARCHAR(20)` | 非空，默认 `user` | 用户角色。 |
 | `create_time` | `DATETIME` | 非空，默认当前时间 | 用户创建时间。 |
 

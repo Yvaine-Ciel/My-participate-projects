@@ -57,6 +57,7 @@
 			}
 		},
 		methods: {
+			// 点击登录按钮：校验手机号和密码后请求登录接口
 			login() {
 				if (!this.phone.trim() || !this.password.trim()) {
 					uni.showToast({
@@ -88,6 +89,7 @@
 					})
 				})
 			},
+			// 点击创建账号：跳转到注册页
 			goRegister() {
 				uni.navigateTo({
 					url: '/pages/register/register'

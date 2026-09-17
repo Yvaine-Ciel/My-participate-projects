@@ -79,6 +79,7 @@
 			}
 		},
 		methods: {
+			// 点击注册按钮：校验表单后提交注册接口
 			register() {
 				if (!this.username.trim() || !this.phone.trim() || !this.password.trim()) {
 					uni.showToast({
@@ -130,6 +131,7 @@
 					})
 				})
 			},
+			// 点击已有账号：回到登录页
 			goLogin() {
 				uni.redirectTo({
 					url: '/pages/login/login'
