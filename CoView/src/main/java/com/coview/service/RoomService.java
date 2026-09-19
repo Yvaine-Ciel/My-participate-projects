@@ -133,8 +133,9 @@ public class RoomService {
 
     public PlaybackState applyPlayback(String roomId, String participantId, String action, double positionSeconds) {
         Room room = requireRoom(roomId);
-        requireOwner(room, participantId);
-        room.findParticipant(participantId).ifPresent(Participant::touch);
+        Participant participant = room.findParticipant(participantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "\u6210\u5458\u8eab\u4efd\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u52a0\u5165\u623f\u95f4\u3002"));
+        participant.touch();
 
         PlaybackState next = switch (action == null ? "" : action.toLowerCase(Locale.ROOT)) {
             case "play" -> room.getPlaybackState().withPlayback(true, positionSeconds);

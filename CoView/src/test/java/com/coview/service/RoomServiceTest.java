@@ -3,6 +3,7 @@ package com.coview.service;
 import com.coview.dto.RoomSessionResponse;
 import com.coview.dto.JoinRequestView;
 import com.coview.model.PlaybackMode;
+import com.coview.model.PlaybackState;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -93,6 +94,19 @@ class RoomServiceTest {
 
         assertThat(roomService.updateSource(owner.roomId(), owner.participantId(), "https://v.qq.com/demo").source().mode())
                 .isEqualTo(PlaybackMode.SCREEN_SHARE);
+    }
+
+    @Test
+    void viewerCanControlSynchronizedPlayback() {
+        String roomId = roomService.generateCandidateRoomId();
+        RoomSessionResponse owner = roomService.createRoom(roomId, "Alice", "https://cdn.example.com/movie.mp4", "1234", "1234");
+        RoomSessionResponse viewer = approveViewer(owner, "Bob");
+
+        PlaybackState state = roomService.applyPlayback(owner.roomId(), viewer.participantId(), "play", 42.5);
+
+        assertThat(state.playing()).isTrue();
+        assertThat(state.positionSeconds()).isEqualTo(42.5);
+        assertThat(roomService.getRoomView(owner.roomId()).playback().playing()).isTrue();
     }
 
     @Test

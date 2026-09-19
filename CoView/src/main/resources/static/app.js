@@ -52,6 +52,41 @@
         return /\.m3u8($|\?)/i.test(url || "");
     }
 
+    const SHARE_TEXT = Object.freeze({
+        sourcePreviewTitle: "\u540e\u7aef\u5df2\u8bc6\u522b\u5230\u8be6\u60c5\u9875",
+        sourcePreviewNote: "\u5982\u679c\u9884\u89c8\u88ab\u5e73\u53f0\u62e6\u622a\uff0c\u8bf7\u5728\u65b0\u6253\u5f00\u7684\u7f51\u9875\u4e2d\u64ad\u653e\uff0c\u518d\u5728\u6d4f\u89c8\u5668\u5171\u4eab\u7a97\u53e3\u91cc\u9009\u62e9\u5b83\u8fdb\u884c\u88c1\u526a\u3002",
+        openSourcePage: "\u6253\u5f00\u8be6\u60c5\u9875",
+        prepareCrop: "\u6253\u5f00\u8be6\u60c5\u9875\u5e76\u51c6\u5907\u88c1\u526a",
+        chooseCaptureTarget: "\u9009\u62e9\u8be5\u8be6\u60c5\u9875\u8fdb\u884c\u88c1\u526a",
+        popupBlocked: "\u6d4f\u89c8\u5668\u963b\u6b62\u4e86\u8be6\u60c5\u9875\u5f39\u51fa\uff0c\u8bf7\u624b\u52a8\u6253\u5f00\u94fe\u63a5\uff1a",
+        captureFailed: "\u65e0\u6cd5\u622a\u53d6\u5171\u4eab\u753b\u9762\u3002\u8bf7\u5728\u6d4f\u89c8\u5668\u5f39\u7a97\u4e2d\u9009\u62e9\u5df2\u6253\u5f00\u7684\u8be6\u60c5\u9875\u3001\u7a97\u53e3\u6216\u5c4f\u5e55\u3002",
+        cropRequired: "\u8bf7\u5148\u62d6\u52a8\u9009\u62e9\u8981\u5171\u4eab\u7684\u533a\u57df\uff0c\u6216\u9009\u62e9\u5171\u4eab\u5168\u753b\u9762\u3002",
+        confirmCrop: "\u786e\u8ba4\u88c1\u526a\u5e76\u5f00\u59cb\u5b9e\u65f6\u5171\u4eab",
+        sharingLive: "\u88c1\u526a\u533a\u57df\u6b63\u5728\u5b9e\u65f6\u5171\u4eab\uff0c\u4fee\u6539\u88c1\u526a\u6846\u4f1a\u7acb\u5373\u66f4\u65b0\u623f\u5ba2\u753b\u9762\u3002",
+        livePreview: "\u88c1\u526a\u540e\u7684\u753b\u9762\u6b63\u5728\u5b9e\u65f6\u5171\u4eab\u3002",
+        cropReady: "\u62d6\u52a8\u9009\u533a\u540e\u70b9\u51fb\u786e\u8ba4\uff0c\u623f\u5ba2\u7aef\u4f1a\u6309\u88c1\u526a\u6bd4\u4f8b\u7b49\u6bd4\u4f8b\u653e\u5927\uff0c\u5bbd\u6216\u9ad8\u81f3\u5c11\u4e00\u4e2a\u65b9\u5411\u94fa\u6ee1\u753b\u9762\u3002",
+        adjustCrop: "\u8c03\u6574\u88c1\u526a",
+        finishAdjust: "\u67e5\u770b\u5171\u4eab\u753b\u9762",
+        receiveShare: "\u63a5\u6536\u5171\u4eab\u753b\u9762",
+        enableAudio: "\u5f00\u542f\u5171\u4eab\u58f0\u97f3",
+        remotePlayBlocked: "\u6d4f\u89c8\u5668\u9700\u8981\u4f60\u70b9\u51fb\u4e00\u6b21\u624d\u80fd\u64ad\u653e\u5171\u4eab\u753b\u9762\u3002",
+        connectingShare: "\u6b63\u5728\u8fde\u63a5\u623f\u4e3b\u5171\u4eab\u753b\u9762",
+        waitingHostShare: "\u7b49\u5f85\u623f\u4e3b\u5f00\u59cb\u5171\u4eab",
+        receivingLive: "\u6b63\u5728\u63a5\u6536\u5171\u4eab\u753b\u9762",
+        signalFailed: "\u5171\u4eab\u8fde\u63a5\u4fe1\u4ee4\u5904\u7406\u5931\u8d25\uff0c\u8bf7\u8ba9\u623f\u4e3b\u505c\u6b62\u540e\u91cd\u65b0\u5171\u4eab\u3002",
+        fullFrame: "\u5171\u4eab\u5168\u753b\u9762",
+        recapture: "\u91cd\u65b0\u9009\u62e9\u9875\u9762",
+        stopShare: "\u505c\u6b62\u5171\u4eab",
+        liveBadge: "\u6b63\u5728\u5171\u4eab",
+        pendingCrop: "\u5f85\u786e\u8ba4",
+        dragCrop: "\u62d6\u52a8\u9009\u62e9\u5171\u4eab\u533a\u57df"
+    });
+
+    const PLAYER_TEXT = Object.freeze({
+        resumeSync: "\u7ee7\u7eed\u540c\u6b65\u64ad\u653e",
+        autoplayBlocked: "\u6d4f\u89c8\u5668\u9700\u8981\u4f60\u70b9\u51fb\u4e00\u6b21\u624d\u80fd\u7ee7\u7eed\u540c\u6b65\u64ad\u653e\u3002"
+    });
+
     function Shell({children, room, wsStatus, onLeave}) {
         return h("div", {className: "app-shell"},
             h("header", {className: "topbar"},
@@ -391,7 +426,7 @@
         const [error, setError] = useState("");
         const [toast, setToast] = useState("");
         const [playbackEvent, setPlaybackEvent] = useState(null);
-        const [signalEvent, setSignalEvent] = useState(null);
+        const [signalEvents, setSignalEvents] = useState([]);
         const [chatMessages, setChatMessages] = useState([]);
         const [joinRequests, setJoinRequests] = useState([]);
         const wsRef = useRef(null);
@@ -429,7 +464,10 @@
                 } else if (message.type === "playback") {
                     setPlaybackEvent({...message, receivedAt: Date.now()});
                 } else if (message.type === "webrtc-signal") {
-                    setSignalEvent({...message, receivedAt: Date.now()});
+                    setSignalEvents(events => [
+                        ...events.slice(-199),
+                        {...message, signalId: Date.now() + ":" + Math.random()}
+                    ]);
                 } else if (message.type === "chat") {
                     setChatMessages(messages => [...messages.slice(-99), message]);
                 } else if (message.type === "room-closed") {
@@ -564,7 +602,7 @@
                         ),
                         room.source.mode === "SYNC"
                             ? h(DirectPlayer, {room, participantId, isOwner, sendWs, playbackEvent})
-                            : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvent})
+                            : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents})
                     ),
                     h(ChatPanel, {messages: chatMessages, participantId, sendWs})
                 ),
@@ -699,6 +737,54 @@
         const hlsRef = useRef(null);
         const applyingRemoteRef = useRef(false);
         const lastStateSentRef = useRef(0);
+        const pendingStateRef = useRef(null);
+        const [playPrompt, setPlayPrompt] = useState("");
+
+        const applyPlaybackState = useCallback((state, showPrompt = true) => {
+            const video = videoRef.current;
+            if (!video || !state) {
+                return;
+            }
+            pendingStateRef.current = state;
+
+            function applyNow() {
+                applyingRemoteRef.current = true;
+                let position = Number(state.positionSeconds || 0);
+                if (state.playing && state.updatedAt) {
+                    const updatedAt = Date.parse(state.updatedAt);
+                    if (Number.isFinite(updatedAt)) {
+                        position += Math.max(0, (Date.now() - updatedAt) / 1000);
+                    }
+                }
+                if (Number.isFinite(position) && Math.abs(video.currentTime - position) > 0.75) {
+                    try {
+                        video.currentTime = position;
+                    } catch (ignored) {
+                    }
+                }
+                if (state.playing) {
+                    video.play()
+                        .then(() => setPlayPrompt(""))
+                        .catch(() => {
+                            if (showPrompt) {
+                                setPlayPrompt(PLAYER_TEXT.autoplayBlocked);
+                            }
+                        });
+                } else {
+                    video.pause();
+                    setPlayPrompt("");
+                }
+                window.setTimeout(() => {
+                    applyingRemoteRef.current = false;
+                }, 350);
+            }
+
+            if (video.readyState < 1) {
+                video.addEventListener("loadedmetadata", applyNow, {once: true});
+            } else {
+                applyNow();
+            }
+        }, []);
 
         useEffect(() => {
             const video = videoRef.current;
@@ -714,6 +800,7 @@
             video.pause();
             video.removeAttribute("src");
             video.load();
+            setPlayPrompt("");
 
             if (isHls(sourceUrl) && window.Hls && window.Hls.isSupported()) {
                 const hlsInstance = new window.Hls({enableWorker: true});
@@ -733,28 +820,22 @@
         }, [room.source.normalizedUrl]);
 
         useEffect(() => {
+            if (room.playback) {
+                applyPlaybackState(room.playback, true);
+            }
+        }, [room.playback && room.playback.updatedAt, room.source.normalizedUrl, applyPlaybackState]);
+
+        useEffect(() => {
             const video = videoRef.current;
             if (!video || !playbackEvent || playbackEvent.senderId === participantId) {
                 return;
             }
-            const state = playbackEvent.state;
-            applyingRemoteRef.current = true;
-            if (Math.abs(video.currentTime - state.positionSeconds) > 0.75) {
-                video.currentTime = state.positionSeconds;
-            }
-            if (state.playing) {
-                video.play().catch(() => {});
-            } else {
-                video.pause();
-            }
-            window.setTimeout(() => {
-                applyingRemoteRef.current = false;
-            }, 350);
-        }, [playbackEvent, participantId]);
+            applyPlaybackState(playbackEvent.state, true);
+        }, [playbackEvent, participantId, applyPlaybackState]);
 
         const sendPlayback = useCallback((action) => {
             const video = videoRef.current;
-            if (!isOwner || !video || applyingRemoteRef.current) {
+            if (!video || applyingRemoteRef.current) {
                 return;
             }
             sendWs({
@@ -762,7 +843,7 @@
                 action,
                 positionSeconds: Number(video.currentTime || 0)
             });
-        }, [isOwner, sendWs]);
+        }, [sendWs]);
 
         function handleTimeUpdate() {
             if (!isOwner || applyingRemoteRef.current) {
@@ -785,12 +866,22 @@
                 onPause: () => sendPlayback("pause"),
                 onSeeked: () => sendPlayback("seek"),
                 onTimeUpdate: handleTimeUpdate
-            })
+            }),
+            playPrompt ? h("button", {
+                type: "button",
+                className: "player-resume",
+                onClick: () => applyPlaybackState(pendingStateRef.current || room.playback, true)
+            }, PLAYER_TEXT.resumeSync) : null
         );
     }
 
     const FULL_CROP = Object.freeze({x: 0, y: 0, width: 100, height: 100});
     const EMPTY_IMAGE_BOX = Object.freeze({left: 0, top: 0, width: 0, height: 0});
+    const SHARE_FRAME_RATE = 30;
+    const SHARE_MAX_WIDTH = 1920;
+    const SHARE_MAX_HEIGHT = 1080;
+    const SHARE_VIDEO_BITRATE = 8_000_000;
+    const SHARE_AUDIO_BITRATE = 160_000;
 
     function clampCrop(crop) {
         if (!crop) {
@@ -811,6 +902,33 @@
             width: Math.abs(end.x - start.x),
             height: Math.abs(end.y - start.y)
         });
+    }
+
+    function sharedOutputSize(width, height) {
+        const safeWidth = Math.max(2, width);
+        const safeHeight = Math.max(2, height);
+        const scale = Math.min(SHARE_MAX_WIDTH / safeWidth, SHARE_MAX_HEIGHT / safeHeight);
+        return {
+            width: Math.max(2, Math.round(safeWidth * scale)),
+            height: Math.max(2, Math.round(safeHeight * scale))
+        };
+    }
+
+    async function tunePeerSender(sender, track) {
+        if (!sender || !track || typeof sender.getParameters !== "function" || typeof sender.setParameters !== "function") {
+            return;
+        }
+        try {
+            const parameters = sender.getParameters();
+            parameters.encodings = parameters.encodings && parameters.encodings.length ? parameters.encodings : [{}];
+            parameters.encodings[0].maxBitrate = track.kind === "video" ? SHARE_VIDEO_BITRATE : SHARE_AUDIO_BITRATE;
+            if (track.kind === "video") {
+                parameters.encodings[0].maxFramerate = SHARE_FRAME_RATE;
+                parameters.degradationPreference = "maintain-resolution";
+            }
+            await sender.setParameters(parameters);
+        } catch (ignored) {
+        }
     }
 
     function waitForVideoReady(video) {
@@ -841,24 +959,42 @@
         };
     }
 
-    function ScreenShare({room, participantId, isOwner, sendWs, signalEvent}) {
+    function ScreenShare({room, participantId, isOwner, sendWs, signalEvents}) {
         const localVideoRef = useRef(null);
+        const ownerPreviewVideoRef = useRef(null);
         const remoteVideoRef = useRef(null);
+        const remoteStreamRef = useRef(null);
         const cropStageRef = useRef(null);
         const rawStreamRef = useRef(null);
         const localStreamRef = useRef(null);
         const canvasRef = useRef(null);
+        const canvasTrackRef = useRef(null);
         const animationFrameRef = useRef(0);
+        const videoFrameCallbackRef = useRef(0);
+        const frameTimerRef = useRef(0);
         const peersRef = useRef(new Map());
+        const pendingCandidatesRef = useRef(new Map());
+        const processedSignalIdsRef = useRef(new Set());
+        const remoteFrameStatsRef = useRef({frames: -1, unchangedTicks: 0});
         const cropRef = useRef(null);
         const [crop, setCrop] = useState(null);
         const [screenshot, setScreenshot] = useState(null);
         const [imageBox, setImageBox] = useState(EMPTY_IMAGE_BOX);
         const [sharing, setSharing] = useState(false);
+        const [editingCrop, setEditingCrop] = useState(false);
+        const [cropConfirmed, setCropConfirmed] = useState(false);
+        const [remoteStreamReady, setRemoteStreamReady] = useState(false);
+        const [remoteMuted, setRemoteMuted] = useState(true);
+        const [remotePlayPrompt, setRemotePlayPrompt] = useState("");
         const [error, setError] = useState("");
+        const [sourcePreviewOpen, setSourcePreviewOpen] = useState(false);
+        const sourceUrl = room.source && room.source.normalizedUrl ? room.source.normalizedUrl : "";
 
         useEffect(() => {
             cropRef.current = crop;
+            if (!sharing) {
+                setCropConfirmed(false);
+            }
         }, [crop]);
 
         const updateImageBox = useCallback(() => {
@@ -899,6 +1035,48 @@
             sendWs({type: "webrtc-signal", targetId, payload});
         }, [sendWs]);
 
+        const playRemoteVideo = useCallback((withAudio = false) => {
+            const video = remoteVideoRef.current;
+            if (!video || !video.srcObject) {
+                return;
+            }
+            const muted = withAudio ? false : remoteMuted;
+            video.muted = muted;
+            setRemoteMuted(muted);
+            setRemotePlayPrompt("");
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.catch === "function") {
+                playPromise.catch(() => setRemotePlayPrompt(SHARE_TEXT.remotePlayBlocked));
+            }
+        }, [remoteMuted]);
+
+        const attachRemoteTrack = useCallback((event) => {
+            let stream = event.streams && event.streams[0] ? event.streams[0] : null;
+            if (!stream) {
+                stream = remoteStreamRef.current || new MediaStream();
+                if (event.track && !stream.getTracks().some(track => track.id === event.track.id)) {
+                    stream.addTrack(event.track);
+                }
+            }
+            remoteStreamRef.current = stream;
+            if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== stream) {
+                remoteVideoRef.current.srcObject = stream;
+                remoteVideoRef.current.muted = remoteMuted;
+            }
+            remoteFrameStatsRef.current = {frames: -1, unchangedTicks: 0};
+            setRemoteStreamReady(true);
+            window.setTimeout(() => playRemoteVideo(false), 0);
+        }, [playRemoteVideo, remoteMuted]);
+
+        const closePeer = useCallback((peerId) => {
+            const peer = peersRef.current.get(peerId);
+            if (peer) {
+                peer.close();
+            }
+            peersRef.current.delete(peerId);
+            pendingCandidatesRef.current.delete(peerId);
+        }, []);
+
         const createPeer = useCallback((peerId) => {
             if (peersRef.current.has(peerId)) {
                 return peersRef.current.get(peerId);
@@ -911,28 +1089,105 @@
                     sendSignal(peerId, {kind: "candidate", candidate: event.candidate});
                 }
             };
-            peer.ontrack = event => {
-                if (remoteVideoRef.current && event.streams[0]) {
-                    remoteVideoRef.current.srcObject = event.streams[0];
+            peer.ontrack = attachRemoteTrack;
+            peer.onconnectionstatechange = () => {
+                const state = peer.connectionState;
+                if (state === "connected") {
+                    playRemoteVideo(false);
+                }
+                if (state === "failed" || state === "closed") {
+                    closePeer(peerId);
                 }
             };
             const stream = localStreamRef.current;
             if (stream) {
-                stream.getTracks().forEach(track => peer.addTrack(track, stream));
+                stream.getTracks().forEach(track => {
+                    const sender = peer.addTrack(track, stream);
+                    tunePeerSender(sender, track);
+                });
             }
             peersRef.current.set(peerId, peer);
             return peer;
-        }, [sendSignal]);
+        }, [attachRemoteTrack, closePeer, playRemoteVideo, sendSignal]);
 
         const closeAllPeers = useCallback(() => {
             peersRef.current.forEach(peer => peer.close());
             peersRef.current.clear();
+            pendingCandidatesRef.current.clear();
         }, []);
+
+        function queueIceCandidate(peerId, candidate) {
+            const candidates = pendingCandidatesRef.current.get(peerId) || [];
+            candidates.push(candidate);
+            pendingCandidatesRef.current.set(peerId, candidates);
+        }
+
+        async function flushQueuedIceCandidates(peerId, peer) {
+            if (!peer.remoteDescription) {
+                return;
+            }
+            const candidates = pendingCandidatesRef.current.get(peerId) || [];
+            if (!candidates.length) {
+                return;
+            }
+            pendingCandidatesRef.current.delete(peerId);
+            for (const candidate of candidates) {
+                await peer.addIceCandidate(candidate);
+            }
+        }
+
+        async function addIceCandidateWhenReady(peerId, peer, candidate) {
+            if (!peer.remoteDescription) {
+                queueIceCandidate(peerId, candidate);
+                return;
+            }
+            await peer.addIceCandidate(candidate);
+        }
+
+        useEffect(() => {
+            if (!isOwner || !sharing || editingCrop || !ownerPreviewVideoRef.current || !localStreamRef.current) {
+                return undefined;
+            }
+            const video = ownerPreviewVideoRef.current;
+            const stream = localStreamRef.current;
+            video.srcObject = stream;
+            video.muted = true;
+            video.play().catch(() => {});
+            return () => {
+                if (video.srcObject === stream) {
+                    video.srcObject = null;
+                }
+            };
+        }, [isOwner, sharing, editingCrop]);
+
+        useEffect(() => {
+            if (isOwner || room.screenShareActive) {
+                return;
+            }
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.pause();
+                remoteVideoRef.current.srcObject = null;
+            }
+            remoteStreamRef.current = null;
+            setRemoteStreamReady(false);
+            setRemoteMuted(true);
+            remoteFrameStatsRef.current = {frames: -1, unchangedTicks: 0};
+            setRemotePlayPrompt("");
+            closeAllPeers();
+        }, [isOwner, room.screenShareActive, closeAllPeers]);
 
         const stopShare = useCallback((notify = true) => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
                 animationFrameRef.current = 0;
+            }
+            if (videoFrameCallbackRef.current && localVideoRef.current && typeof localVideoRef.current.cancelVideoFrameCallback === "function") {
+                localVideoRef.current.cancelVideoFrameCallback(videoFrameCallbackRef.current);
+                videoFrameCallbackRef.current = 0;
+            }
+            if (frameTimerRef.current) {
+                window.clearInterval(frameTimerRef.current);
+                frameTimerRef.current = 0;
             }
             if (rawStreamRef.current) {
                 rawStreamRef.current.getTracks().forEach(track => track.stop());
@@ -943,10 +1198,19 @@
             rawStreamRef.current = null;
             localStreamRef.current = null;
             canvasRef.current = null;
+            canvasTrackRef.current = null;
             closeAllPeers();
+            remoteStreamRef.current = null;
             setSharing(false);
+            setEditingCrop(false);
+            setCropConfirmed(false);
+            setRemoteStreamReady(false);
+            setRemoteMuted(true);
+            remoteFrameStatsRef.current = {frames: -1, unchangedTicks: 0};
+            setRemotePlayPrompt("");
             setScreenshot(null);
             setCrop(null);
+            setSourcePreviewOpen(false);
             setImageBox(EMPTY_IMAGE_BOX);
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = null;
@@ -956,15 +1220,107 @@
             }
         }, [closeAllPeers, sendWs]);
 
-        const offerTo = useCallback(async (targetId) => {
-            if (!localStreamRef.current || peersRef.current.has(targetId)) {
+        const offerTo = useCallback(async (targetId, options = {}) => {
+            if (!localStreamRef.current) {
                 return;
+            }
+            const existingPeer = peersRef.current.get(targetId);
+            if (existingPeer) {
+                const state = existingPeer.connectionState;
+                if (options.force || state === "failed" || state === "closed" || state === "disconnected") {
+                    closePeer(targetId);
+                } else if (existingPeer.localDescription && existingPeer.localDescription.type === "offer") {
+                    sendSignal(targetId, {kind: "offer", sdp: existingPeer.localDescription});
+                    return;
+                } else {
+                    return;
+                }
             }
             const peer = createPeer(targetId);
             const offer = await peer.createOffer();
             await peer.setLocalDescription(offer);
             sendSignal(targetId, {kind: "offer", sdp: peer.localDescription});
-        }, [createPeer, sendSignal]);
+        }, [closePeer, createPeer, sendSignal]);
+
+        const requestOfferFromOwner = useCallback(() => {
+            if (isOwner || !room.screenShareActive || !room.ownerId || room.ownerId === participantId) {
+                return;
+            }
+            sendSignal(room.ownerId, {kind: "request-offer"});
+        }, [isOwner, room.screenShareActive, room.ownerId, participantId, sendSignal]);
+
+        useEffect(() => {
+            if (isOwner || !room.screenShareActive || remoteStreamReady || !room.ownerId || room.ownerId === participantId) {
+                return undefined;
+            }
+
+            let attempts = 0;
+            let retryTimer = 0;
+            const requestOffer = () => {
+                attempts += 1;
+                requestOfferFromOwner();
+                if (attempts >= 5 && retryTimer) {
+                    window.clearInterval(retryTimer);
+                }
+            };
+
+            requestOffer();
+            retryTimer = window.setInterval(requestOffer, 4000);
+            return () => window.clearInterval(retryTimer);
+        }, [isOwner, room.screenShareActive, room.ownerId, participantId, remoteStreamReady, requestOfferFromOwner]);
+
+        useEffect(() => {
+            if (isOwner || !room.screenShareActive || !remoteStreamReady) {
+                return undefined;
+            }
+
+            remoteFrameStatsRef.current = {frames: -1, unchangedTicks: 0};
+            const timer = window.setInterval(() => {
+                const video = remoteVideoRef.current;
+                if (!video || !video.srcObject) {
+                    requestOfferFromOwner();
+                    return;
+                }
+
+                video.muted = remoteMuted;
+                if (video.paused || video.ended) {
+                    playRemoteVideo(false);
+                }
+
+                const quality = typeof video.getVideoPlaybackQuality === "function"
+                    ? video.getVideoPlaybackQuality()
+                    : null;
+                const frames = quality ? quality.totalVideoFrames : Math.floor((video.currentTime || 0) * 10);
+                const stats = remoteFrameStatsRef.current;
+                if (frames > 0 && frames === stats.frames) {
+                    stats.unchangedTicks += 1;
+                } else {
+                    stats.frames = frames;
+                    stats.unchangedTicks = 0;
+                }
+
+                if (stats.unchangedTicks >= 4) {
+                    stats.unchangedTicks = 0;
+                    requestOfferFromOwner();
+                }
+            }, 1500);
+
+            return () => window.clearInterval(timer);
+        }, [isOwner, room.screenShareActive, remoteStreamReady, remoteMuted, playRemoteVideo, requestOfferFromOwner]);
+
+        function openSourceDetailPage() {
+            setSourcePreviewOpen(true);
+            if (!sourceUrl) {
+                return;
+            }
+            const opened = window.open(sourceUrl, "coview_source_detail", "width=1280,height=900");
+            if (opened) {
+                opened.opener = null;
+                opened.focus();
+            } else {
+                setError(SHARE_TEXT.popupBlocked + " " + sourceUrl);
+            }
+        }
 
         function startCropDrawing(rawStream) {
             const video = localVideoRef.current;
@@ -972,7 +1328,7 @@
             const context = canvas.getContext("2d");
             canvasRef.current = canvas;
 
-            function draw() {
+            function drawFrame() {
                 if (video && video.readyState >= 2 && context) {
                     const sourceWidth = video.videoWidth || 1280;
                     const sourceHeight = video.videoHeight || 720;
@@ -981,35 +1337,78 @@
                     const sy = sourceHeight * currentCrop.y / 100;
                     const sw = sourceWidth * currentCrop.width / 100;
                     const sh = sourceHeight * currentCrop.height / 100;
-                    const scale = Math.min(1, 1920 / Math.max(sw, sh));
-                    const nextWidth = Math.max(2, Math.round(sw * scale));
-                    const nextHeight = Math.max(2, Math.round(sh * scale));
-                    if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
-                        canvas.width = nextWidth;
-                        canvas.height = nextHeight;
+                    const output = sharedOutputSize(sw, sh);
+                    if (canvas.width !== output.width || canvas.height !== output.height) {
+                        canvas.width = output.width;
+                        canvas.height = output.height;
+                    }
+                    context.imageSmoothingEnabled = true;
+                    if ("imageSmoothingQuality" in context) {
+                        context.imageSmoothingQuality = "high";
                     }
                     context.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+                    if (canvasTrackRef.current && typeof canvasTrackRef.current.requestFrame === "function") {
+                        canvasTrackRef.current.requestFrame();
+                    }
                 }
-                animationFrameRef.current = requestAnimationFrame(draw);
             }
 
-            const croppedStream = canvas.captureStream(30);
+            function drawLoop() {
+                if (video && typeof video.requestVideoFrameCallback === "function") {
+                    videoFrameCallbackRef.current = video.requestVideoFrameCallback(() => {
+                        drawFrame();
+                        drawLoop();
+                    });
+                    return;
+                }
+                drawFrame();
+                animationFrameRef.current = requestAnimationFrame(drawLoop);
+            }
+
+            drawFrame();
+            const croppedStream = canvas.captureStream(SHARE_FRAME_RATE);
+            canvasTrackRef.current = croppedStream.getVideoTracks()[0] || null;
+            if (canvasTrackRef.current) {
+                canvasTrackRef.current.contentHint = "detail";
+            }
             rawStream.getAudioTracks().forEach(track => croppedStream.addTrack(track));
             localStreamRef.current = croppedStream;
-            draw();
+            drawLoop();
+            if (frameTimerRef.current) {
+                window.clearInterval(frameTimerRef.current);
+            }
+            frameTimerRef.current = window.setInterval(drawFrame, Math.round(1000 / SHARE_FRAME_RATE));
         }
 
         async function captureForCrop() {
             setError("");
+            if (!sourcePreviewOpen && sourceUrl) {
+                openSourceDetailPage();
+                return;
+            }
             try {
                 if (rawStreamRef.current) {
                     stopShare(sharing);
                 }
                 const rawStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {frameRate: {ideal: 30, max: 30}},
+                    video: {
+                        width: {ideal: SHARE_MAX_WIDTH},
+                        height: {ideal: SHARE_MAX_HEIGHT},
+                        frameRate: {ideal: SHARE_FRAME_RATE, max: SHARE_FRAME_RATE}
+                    },
                     audio: true
                 });
                 rawStreamRef.current = rawStream;
+                rawStream.getVideoTracks().forEach(track => {
+                    track.contentHint = "detail";
+                    if (typeof track.applyConstraints === "function") {
+                        track.applyConstraints({
+                            width: {ideal: SHARE_MAX_WIDTH},
+                            height: {ideal: SHARE_MAX_HEIGHT},
+                            frameRate: {ideal: SHARE_FRAME_RATE, max: SHARE_FRAME_RATE}
+                        }).catch(() => {});
+                    }
+                });
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = rawStream;
                     localVideoRef.current.muted = true;
@@ -1018,7 +1417,9 @@
                     setScreenshot(captureVideoFrame(localVideoRef.current));
                 }
                 startCropDrawing(rawStream);
-                setCrop(null);
+                setCrop({...FULL_CROP});
+                setEditingCrop(true);
+                setCropConfirmed(false);
                 rawStream.getTracks().forEach(track => {
                     track.addEventListener("ended", () => {
                         if (rawStreamRef.current === rawStream) {
@@ -1027,8 +1428,9 @@
                     }, {once: true});
                 });
             } catch (ex) {
-                setError("无法截取共享画面。请在浏览器弹窗中选择要共享的标签页、窗口或屏幕。");
+                setError(SHARE_TEXT.captureFailed);
                 stopShare(false);
+                setSourcePreviewOpen(true);
             }
         }
 
@@ -1039,10 +1441,12 @@
                 return;
             }
             if (!cropRef.current) {
-                setError("请先拖动选择要共享的区域，或选择共享全画面。");
+                setError(SHARE_TEXT.cropRequired);
                 return;
             }
+            setCropConfirmed(true);
             setSharing(true);
+            setEditingCrop(false);
             sendWs({type: "screen-share", active: true});
             await Promise.all(room.participants
                 .filter(participant => participant.id !== participantId)
@@ -1154,41 +1558,78 @@
         }, [room.participants, isOwner, participantId, offerTo, sharing]);
 
         useEffect(() => {
-            if (!signalEvent || signalEvent.targetId !== participantId) {
+            if (!signalEvents || !signalEvents.length) {
                 return;
             }
-            const payload = signalEvent.payload;
-            const fromId = signalEvent.fromId;
-            const peer = createPeer(fromId);
 
-            async function handleSignal() {
+            async function handleSignal(signalEvent) {
+                if (!signalEvent || signalEvent.targetId !== participantId) {
+                    return;
+                }
+                const payload = signalEvent.payload;
+                const fromId = signalEvent.fromId;
+
+                if (payload.kind === "request-offer") {
+                    if (isOwner && sharing && localStreamRef.current) {
+                        await offerTo(fromId, {force: true});
+                    }
+                    return;
+                }
+
                 if (payload.kind === "offer") {
+                    let peer = peersRef.current.get(fromId);
+                    if (peer && (peer.remoteDescription || peer.localDescription || peer.connectionState !== "new")) {
+                        closePeer(fromId);
+                        peer = null;
+                    }
+                    peer = peer || createPeer(fromId);
                     await peer.setRemoteDescription(payload.sdp);
+                    await flushQueuedIceCandidates(fromId, peer);
                     const answer = await peer.createAnswer();
                     await peer.setLocalDescription(answer);
                     sendSignal(fromId, {kind: "answer", sdp: peer.localDescription});
                 } else if (payload.kind === "answer") {
+                    const peer = createPeer(fromId);
                     await peer.setRemoteDescription(payload.sdp);
+                    await flushQueuedIceCandidates(fromId, peer);
                 } else if (payload.kind === "candidate" && payload.candidate) {
-                    await peer.addIceCandidate(payload.candidate);
+                    const peer = createPeer(fromId);
+                    await addIceCandidateWhenReady(fromId, peer, payload.candidate);
                 }
             }
 
-            handleSignal().catch(() => setError("WebRTC 信令处理失败。"));
-        }, [signalEvent, participantId, createPeer, sendSignal]);
+            signalEvents.forEach(signalEvent => {
+                const signalId = signalEvent.signalId || signalEvent.receivedAt;
+                if (processedSignalIdsRef.current.has(signalId)) {
+                    return;
+                }
+                processedSignalIdsRef.current.add(signalId);
+                handleSignal(signalEvent).catch(() => setError(SHARE_TEXT.signalFailed));
+            });
+            if (processedSignalIdsRef.current.size > 400) {
+                const activeIds = new Set(signalEvents.slice(-200).map(signalEvent => signalEvent.signalId || signalEvent.receivedAt));
+                processedSignalIdsRef.current.forEach(signalId => {
+                    if (!activeIds.has(signalId)) {
+                        processedSignalIdsRef.current.delete(signalId);
+                    }
+                });
+            }
+
+        }, [signalEvents, participantId, closePeer, createPeer, sendSignal, isOwner, sharing, offerTo]);
 
         useEffect(() => () => stopShare(false), [stopShare]);
 
         if (isOwner) {
             const hasScreenshot = Boolean(screenshot);
+            const showCropEditor = hasScreenshot && (!sharing || editingCrop);
             return h("div", {className: "share-panel"},
                 h("div", {
-                    className: "crop-stage " + (hasScreenshot ? "selecting" : ""),
+                    className: "crop-stage " + (showCropEditor ? "selecting" : ""),
                     ref: cropStageRef,
-                    onPointerDown: hasScreenshot ? startDrawCrop : undefined
+                    onPointerDown: showCropEditor ? startDrawCrop : undefined
                 },
                     h("video", {className: "capture-video-source", ref: localVideoRef, autoPlay: true, playsInline: true, muted: true}),
-                    hasScreenshot ? h("div", {
+                    showCropEditor ? h("div", {
                         className: "capture-surface",
                         style: {
                             left: imageBox.left + "px",
@@ -1212,29 +1653,80 @@
                             h("span", {className: "crop-handle ne", onPointerDown: event => startCropPointer(event, "ne")}),
                             h("span", {className: "crop-handle sw", onPointerDown: event => startCropPointer(event, "sw")}),
                             h("span", {className: "crop-handle se", onPointerDown: event => startCropPointer(event, "se")}),
-                            h("span", {className: "crop-label"}, sharing ? "正在共享" : "待共享")
-                        ) : h("div", {className: "capture-hint"}, "拖动选择共享区域")
-                    ) : h("div", {className: "empty-share"}, "点击共享屏幕后会截取当前画面")
+                            h("span", {className: "crop-label"}, cropConfirmed ? SHARE_TEXT.liveBadge : SHARE_TEXT.pendingCrop)
+                        ) : h("div", {className: "capture-hint"}, SHARE_TEXT.dragCrop)
+                    ) : sharing ? h("video", {
+                        className: "shared-output-video",
+                        ref: ownerPreviewVideoRef,
+                        autoPlay: true,
+                        playsInline: true,
+                        muted: true
+                    }) : sourcePreviewOpen && sourceUrl ? h("div", {className: "source-preview"},
+                        h("div", {className: "source-preview-bar"},
+                            h("div", {className: "source-preview-title"},
+                                h("strong", null, SHARE_TEXT.sourcePreviewTitle),
+                                h("span", {className: "mono"}, sourceUrl)
+                            ),
+                            h("button", {type: "button", className: "secondary", onClick: openSourceDetailPage}, SHARE_TEXT.openSourcePage)
+                        ),
+                        h("div", {className: "source-preview-frame-wrap"},
+                            h("iframe", {
+                                className: "source-preview-frame",
+                                src: sourceUrl,
+                                title: SHARE_TEXT.sourcePreviewTitle,
+                                referrerPolicy: "no-referrer",
+                                allow: "autoplay; fullscreen; encrypted-media; picture-in-picture",
+                                allowFullScreen: true
+                            })
+                        ),
+                        h("div", {className: "source-preview-note"}, SHARE_TEXT.sourcePreviewNote)
+                    ) : h("div", {className: "empty-share"}, SHARE_TEXT.chooseCaptureTarget)
                 ),
                 error ? h("div", {className: "notice error"}, error) : null,
                 h("div", {className: "button-row"},
                     sharing
-                        ? h("button", {className: "danger", onClick: () => stopShare(true)}, "停止共享")
+                        ? h("button", {className: "danger", onClick: () => stopShare(true)}, SHARE_TEXT.stopShare)
                         : hasScreenshot
-                            ? h("button", {className: "success", disabled: !crop, onClick: startShare}, "共享选区")
-                            : h("button", {className: "success", onClick: captureForCrop}, "共享屏幕"),
-                    hasScreenshot ? h("button", {type: "button", className: "secondary", onClick: resetCrop}, "共享全画面") : null,
-                    hasScreenshot ? h("button", {type: "button", className: "secondary", onClick: captureForCrop}, "重新截屏") : null
+                            ? h("button", {className: "success", disabled: !crop, onClick: startShare}, SHARE_TEXT.confirmCrop)
+                            : h("button", {className: "success", onClick: captureForCrop}, sourcePreviewOpen ? SHARE_TEXT.chooseCaptureTarget : SHARE_TEXT.prepareCrop),
+                    sharing && hasScreenshot ? h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: () => setEditingCrop(value => !value)
+                    }, editingCrop ? SHARE_TEXT.finishAdjust : SHARE_TEXT.adjustCrop) : null,
+                    hasScreenshot && (!sharing || editingCrop) ? h("button", {type: "button", className: "secondary", onClick: resetCrop}, SHARE_TEXT.fullFrame) : null,
+                    hasScreenshot ? h("button", {type: "button", className: "secondary", onClick: captureForCrop}, SHARE_TEXT.recapture) : null
                 ),
                 h("div", {className: "share-note"}, hasScreenshot
-                    ? "共享画面会按选区比例输出，房客端等比例放大显示。"
-                    : "浏览器授权后会先截取一帧，用来像系统截图一样框选共享区域。")
+                    ? (sharing ? (editingCrop ? SHARE_TEXT.sharingLive : SHARE_TEXT.livePreview) : SHARE_TEXT.cropReady)
+                    : SHARE_TEXT.sourcePreviewNote)
             );
         }
 
         return h("div", {className: "share-panel"},
             h("div", {className: "video-wrap"},
-                h("video", {ref: remoteVideoRef, autoPlay: true, playsInline: true, controls: true})
+                h("video", {
+                    className: "shared-output-video",
+                    ref: remoteVideoRef,
+                    autoPlay: true,
+                    playsInline: true,
+                    controls: true,
+                    muted: remoteMuted,
+                    onLoadedMetadata: () => playRemoteVideo(false),
+                    onCanPlay: () => playRemoteVideo(false),
+                    onPlaying: () => setRemotePlayPrompt("")
+                }),
+                room.screenShareActive && !remoteStreamReady ? h("div", {className: "empty-share"}, SHARE_TEXT.connectingShare) : null,
+                remotePlayPrompt ? h("button", {
+                    type: "button",
+                    className: "player-resume",
+                    onClick: () => playRemoteVideo(false)
+                }, SHARE_TEXT.receiveShare) : null,
+                remoteStreamReady && remoteMuted ? h("button", {
+                    type: "button",
+                    className: "player-resume audio",
+                    onClick: () => playRemoteVideo(true)
+                }, SHARE_TEXT.enableAudio) : null
             ),
             error ? h("div", {className: "notice error"}, error) : null,
             h("div", {className: "share-note"}, room.screenShareActive ? "正在接收共享画面" : "等待房主开始共享")
