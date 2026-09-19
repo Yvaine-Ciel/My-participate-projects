@@ -9,8 +9,12 @@
     }
 
     function currentRoomFromHash() {
-        const match = window.location.hash.match(/^#\/room\/([A-Za-z0-9-]+)$/);
+        const match = window.location.hash.match(/^#\/(?:room|control)\/([A-Za-z0-9-]+)$/);
         return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function isControlRoute() {
+        return /^#\/control\/[A-Za-z0-9-]+$/.test(window.location.hash);
     }
 
     function normalizeRoomInput(value) {
@@ -23,6 +27,10 @@
 
     function navigateToRoom(roomId) {
         window.location.hash = "#/room/" + encodeURIComponent(roomId);
+    }
+
+    function controlUrl(roomId) {
+        return window.location.origin + window.location.pathname + "#/control/" + encodeURIComponent(roomId);
     }
 
     async function api(path, options) {
@@ -109,14 +117,23 @@
 
     function App() {
         const [roomId, setRoomId] = useState(currentRoomFromHash());
+        const [controlMode, setControlMode] = useState(isControlRoute());
 
         useEffect(() => {
-            const onHashChange = () => setRoomId(currentRoomFromHash());
+            const onHashChange = () => {
+                setRoomId(currentRoomFromHash());
+                setControlMode(isControlRoute());
+            };
             window.addEventListener("hashchange", onHashChange);
             return () => window.removeEventListener("hashchange", onHashChange);
         }, []);
 
-        return roomId ? h(RoomPage, {key: roomId, roomId}) : h(EntryPage);
+        if (!roomId) {
+            return h(EntryPage);
+        }
+        return controlMode
+            ? h(HostControlWindow, {key: "control:" + roomId, roomId})
+            : h(RoomPage, {key: "room:" + roomId, roomId});
     }
 
     function EntryPage() {
@@ -430,6 +447,8 @@
         const [signalEvents, setSignalEvents] = useState([]);
         const [chatMessages, setChatMessages] = useState([]);
         const [joinRequests, setJoinRequests] = useState([]);
+        const [hostPanelCollapsed, setHostPanelCollapsed] = useState(false);
+        const [hostPanelSeenSignalCount, setHostPanelSeenSignalCount] = useState(0);
         const wsRef = useRef(null);
         const wsRoomId = room ? room.id : "";
 
@@ -500,6 +519,17 @@
         }, [room, participantId]);
 
         const isOwner = Boolean(participant && participant.owner);
+        const hostPanelSignalCount = chatMessages.length + joinRequests.length;
+        const hostPanelHasAlert = isOwner && hostPanelCollapsed && hostPanelSignalCount > hostPanelSeenSignalCount;
+
+        useEffect(() => {
+            if (!isOwner) {
+                return;
+            }
+            if (!hostPanelCollapsed) {
+                setHostPanelSeenSignalCount(hostPanelSignalCount);
+            }
+        }, [isOwner, hostPanelCollapsed, hostPanelSignalCount]);
 
         useEffect(() => {
             if (!room || !participantId || !isOwner) {
@@ -563,6 +593,18 @@
             }
         }
 
+        function openHostControlWindow() {
+            if (!room) {
+                return;
+            }
+            const opened = window.open(controlUrl(room.id), "coview_host_control_" + room.id, "width=420,height=720");
+            if (opened) {
+                opened.focus();
+            } else {
+                setToast("浏览器阻止了房主小窗，请允许弹窗后再试。");
+            }
+        }
+
         if (!participantId) {
             return h(Shell, null, h(DirectJoinPanel, {
                 roomId: normalizeRoomInput(roomId),
@@ -592,7 +634,7 @@
         return h(Shell, {room, wsStatus, onLeave: leaveRoom},
             h("div", {className: "room-page-layout"},
                 toast ? h("div", {className: "notice"}, toast) : null,
-                h("div", {className: "watch-chat-row"},
+                h("div", {className: "watch-chat-row" + (isOwner ? " owner-floating-enabled" : "")},
                     h("section", {className: "watch-stage"},
                         h("div", {className: "stage-toolbar"},
                             h("div", {className: "stage-title"},
@@ -605,23 +647,268 @@
                             ? h(DirectPlayer, {room, participantId, isOwner, sendWs, playbackEvent})
                             : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents})
                     ),
-                    h(ChatPanel, {messages: chatMessages, participantId, sendWs})
+                    isOwner ? null : h(ChatPanel, {messages: chatMessages, participantId, sendWs})
                 ),
                 h("section", {className: "sidebar-panel full-row-panel"},
                     h("div", {className: "sidebar-title"},
                         h("strong", null, "当前来源"),
                         h("span", null, room.source.reason)
                     ),
-                    isOwner ? h(SourceSwitcher, {room, participantId, setRoom, sendWs}) : null
+                    isOwner ? h(SourceSwitcher, {room, participantId, setRoom, sendWs}) : null,
+                    isOwner ? h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: openHostControlWindow
+                    }, "房主小窗") : null
                 ),
-                isOwner ? h(JoinRequestsPanel, {requests: joinRequests, onDecision: decideJoinRequest}) : null,
                 h("section", {className: "sidebar-panel full-row-panel"},
                     h("div", {className: "sidebar-title"},
                         h("strong", null, "成员"),
                         h("span", null, room.participants.length + " 人")
                     ),
                     h(ParticipantList, {room})
+                ),
+                isOwner ? h(HostFloatingPanel, {
+                    room,
+                    collapsed: hostPanelCollapsed,
+                    hasAlert: hostPanelHasAlert,
+                    messages: chatMessages,
+                    participantId,
+                    sendWs,
+                    joinRequests,
+                    onDecision: decideJoinRequest,
+                    onToggle: () => setHostPanelCollapsed(value => !value),
+                    onOpenWindow: openHostControlWindow
+                }) : null
+            )
+        );
+    }
+
+    function HostFloatingPanel({
+        room,
+        collapsed,
+        hasAlert,
+        messages,
+        participantId,
+        sendWs,
+        joinRequests,
+        onDecision,
+        onToggle,
+        onOpenWindow
+    }) {
+        if (collapsed) {
+            return h("button", {
+                type: "button",
+                className: "host-floating-toggle" + (hasAlert ? " has-alert" : ""),
+                onClick: onToggle,
+                title: "展开 CoView 房主浮窗"
+            },
+                h("span", {className: "host-floating-mark"}, "C"),
+                hasAlert ? h("span", {className: "floating-dot"}) : null
+            );
+        }
+
+        return h("aside", {className: "host-floating-panel"},
+            h("div", {className: "host-floating-header"},
+                h("div", null,
+                    h("strong", null, "CoView 房主浮窗"),
+                    h("span", {className: "mono"}, room.id)
+                ),
+                h("div", {className: "host-floating-actions"},
+                    h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: () => window.alert("桌面浏览器可安装项目里的 coview-extension 扩展。安装后先回到 CoView 房主房间完成自动配对，再打开视频网页即可自动显示浮窗。手机官方 App 需要原生 App 或系统悬浮窗权限，网页无法直接覆盖。")
+                    }, "浏览器扩展"),
+                    h("button", {type: "button", className: "secondary", onClick: onOpenWindow}, "独立小窗"),
+                    h("button", {type: "button", className: "secondary", onClick: onToggle}, "收起")
                 )
+            ),
+            h("div", {className: "host-floating-status"},
+                h("span", null, room.participants.length + " 人"),
+                h("span", null, room.screenShareActive ? "共享中" : "未共享"),
+                joinRequests.length ? h("span", {className: "host-floating-alert-text"}, joinRequests.length + " 个申请") : null
+            ),
+            h(JoinRequestsPanel, {requests: joinRequests, onDecision}),
+            h(ChatPanel, {messages, participantId, sendWs}),
+            h("section", {className: "sidebar-panel host-floating-members"},
+                h("div", {className: "sidebar-title"},
+                    h("strong", null, "成员"),
+                    h("span", null, room.participants.length + " 人")
+                ),
+                h(ParticipantList, {room})
+            )
+        );
+    }
+
+    function HostControlWindow({roomId}) {
+        const [participantId] = useState(() => sessionStorage.getItem(participantKey(roomId)) || "");
+        const [room, setRoom] = useState(null);
+        const [wsStatus, setWsStatus] = useState("");
+        const [error, setError] = useState("");
+        const [toast, setToast] = useState("");
+        const [chatMessages, setChatMessages] = useState([]);
+        const [joinRequests, setJoinRequests] = useState([]);
+        const wsRef = useRef(null);
+
+        useEffect(() => {
+            if (!participantId) {
+                setError("请先在主房间中以房主身份进入，再打开房主小窗。");
+                return undefined;
+            }
+            let mounted = true;
+            api("/api/rooms/" + encodeURIComponent(roomId))
+                .then(data => mounted && setRoom(data))
+                .catch(ex => mounted && setError(ex.message));
+            return () => {
+                mounted = false;
+            };
+        }, [roomId, participantId]);
+
+        useEffect(() => {
+            if (!participantId || !room) {
+                return undefined;
+            }
+            const socket = new WebSocket(wsUrl(room.id, participantId));
+            wsRef.current = socket;
+            setWsStatus("连接中");
+
+            socket.onopen = () => setWsStatus("已连接");
+            socket.onclose = () => setWsStatus("已断开");
+            socket.onerror = () => setWsStatus("连接异常");
+            socket.onmessage = event => {
+                const message = JSON.parse(event.data);
+                if (message.type === "snapshot" || message.type === "presence" || message.type === "screen-share") {
+                    setRoom(message.room);
+                } else if (message.type === "chat") {
+                    setChatMessages(messages => [...messages.slice(-99), message]);
+                } else if (message.type === "room-closed") {
+                    setError(message.message || "房间已关闭。");
+                } else if (message.type === "error") {
+                    setToast(message.message);
+                }
+            };
+
+            return () => socket.close();
+        }, [participantId, room && room.id]);
+
+        const sendWs = useCallback(payload => {
+            const socket = wsRef.current;
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(payload));
+            }
+        }, []);
+
+        const participant = useMemo(() => {
+            if (!room || !participantId) {
+                return null;
+            }
+            return room.participants.find(item => item.id === participantId) || null;
+        }, [room, participantId]);
+
+        const isOwner = Boolean(participant && participant.owner);
+
+        useEffect(() => {
+            if (!room || !participantId || !isOwner) {
+                setJoinRequests([]);
+                return undefined;
+            }
+            let stopped = false;
+            async function loadJoinRequests() {
+                try {
+                    const result = await api("/api/rooms/" + encodeURIComponent(room.id)
+                        + "/join-requests?participantId=" + encodeURIComponent(participantId));
+                    if (!stopped) {
+                        setJoinRequests(result);
+                    }
+                } catch (ex) {
+                    if (!stopped) {
+                        setToast(ex.message);
+                    }
+                }
+            }
+            loadJoinRequests();
+            const timer = window.setInterval(loadJoinRequests, 2000);
+            return () => {
+                stopped = true;
+                window.clearInterval(timer);
+            };
+        }, [room, participantId, isOwner]);
+
+        async function decideJoinRequest(requestId, approved) {
+            try {
+                const result = await api("/api/rooms/" + encodeURIComponent(room.id)
+                    + "/join-requests/" + encodeURIComponent(requestId) + "/decision", {
+                    method: "POST",
+                    body: JSON.stringify({participantId, approved})
+                });
+                setJoinRequests(requests => requests.filter(request => request.id !== requestId));
+                if (result.room) {
+                    setRoom(result.room);
+                    sendWs({type: "room-refresh"});
+                }
+            } catch (ex) {
+                setToast(ex.message);
+            }
+        }
+
+        function focusMainRoom() {
+            if (window.opener && !window.opener.closed) {
+                window.opener.focus();
+            } else {
+                navigateToRoom(roomId);
+            }
+        }
+
+        if (error) {
+            return h("div", {className: "control-shell"},
+                h("header", {className: "control-header"},
+                    h("strong", null, "房主小窗"),
+                    h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+                ),
+                h("div", {className: "notice error"}, error)
+            );
+        }
+
+        if (!room) {
+            return h("div", {className: "control-shell"},
+                h("header", {className: "control-header"}, h("strong", null, "房主小窗")),
+                h("div", {className: "notice"}, "正在连接房间")
+            );
+        }
+
+        if (!isOwner) {
+            return h("div", {className: "control-shell"},
+                h("header", {className: "control-header"},
+                    h("strong", null, "房主小窗"),
+                    h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+                ),
+                h("div", {className: "notice error"}, "只有房主可以使用这个控制小窗。")
+            );
+        }
+
+        return h("div", {className: "control-shell"},
+            h("header", {className: "control-header"},
+                h("div", null,
+                    h("strong", null, "房主小窗"),
+                    h("span", {className: "mono"}, room.id)
+                ),
+                h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+            ),
+            h("div", {className: "control-status-row"},
+                h("span", {className: "status-pill " + (wsStatus === "已连接" ? "online" : "")}, wsStatus || "未连接"),
+                h("span", null, room.participants.length + " 人"),
+                h("span", null, room.screenShareActive ? "共享中" : "未共享")
+            ),
+            toast ? h("div", {className: "notice"}, toast) : null,
+            h(JoinRequestsPanel, {requests: joinRequests, onDecision: decideJoinRequest}),
+            h(ChatPanel, {messages: chatMessages, participantId, sendWs}),
+            h("section", {className: "sidebar-panel"},
+                h("div", {className: "sidebar-title"},
+                    h("strong", null, "成员"),
+                    h("span", null, room.participants.length + " 人")
+                ),
+                h(ParticipantList, {room})
             )
         );
     }
