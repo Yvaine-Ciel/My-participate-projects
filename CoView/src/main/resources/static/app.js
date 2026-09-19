@@ -53,11 +53,12 @@
     }
 
     const SHARE_TEXT = Object.freeze({
-        sourcePreviewTitle: "\u540e\u7aef\u5df2\u8bc6\u522b\u5230\u8be6\u60c5\u9875",
-        sourcePreviewNote: "\u5982\u679c\u9884\u89c8\u88ab\u5e73\u53f0\u62e6\u622a\uff0c\u8bf7\u5728\u65b0\u6253\u5f00\u7684\u7f51\u9875\u4e2d\u64ad\u653e\uff0c\u518d\u5728\u6d4f\u89c8\u5668\u5171\u4eab\u7a97\u53e3\u91cc\u9009\u62e9\u5b83\u8fdb\u884c\u88c1\u526a\u3002",
+        sourcePreviewTitle: "\u8be6\u60c5\u9875\u5df2\u51c6\u5907",
+        sourcePreviewNote: "\u5982\u679c\u539f\u64ad\u653e\u9875\u5df2\u5728\u540e\u53f0\u6253\u5f00\uff0c\u76f4\u63a5\u9009\u62e9\u5b83\u8fdb\u884c\u88c1\u526a\u3002",
         openSourcePage: "\u6253\u5f00\u8be6\u60c5\u9875",
-        prepareCrop: "\u6253\u5f00\u8be6\u60c5\u9875\u5e76\u51c6\u5907\u88c1\u526a",
-        chooseCaptureTarget: "\u9009\u62e9\u8be5\u8be6\u60c5\u9875\u8fdb\u884c\u88c1\u526a",
+        focusSourcePage: "\u5207\u56de\u8be6\u60c5\u9875",
+        prepareCrop: "\u9009\u62e9\u64ad\u653e\u9875\u9762\u8fdb\u884c\u88c1\u526a",
+        chooseCaptureTarget: "\u9009\u62e9\u5df2\u6253\u5f00\u7684\u64ad\u653e\u9875\u9762",
         popupBlocked: "\u6d4f\u89c8\u5668\u963b\u6b62\u4e86\u8be6\u60c5\u9875\u5f39\u51fa\uff0c\u8bf7\u624b\u52a8\u6253\u5f00\u94fe\u63a5\uff1a",
         captureFailed: "\u65e0\u6cd5\u622a\u53d6\u5171\u4eab\u753b\u9762\u3002\u8bf7\u5728\u6d4f\u89c8\u5668\u5f39\u7a97\u4e2d\u9009\u62e9\u5df2\u6253\u5f00\u7684\u8be6\u60c5\u9875\u3001\u7a97\u53e3\u6216\u5c4f\u5e55\u3002",
         cropRequired: "\u8bf7\u5148\u62d6\u52a8\u9009\u62e9\u8981\u5171\u4eab\u7684\u533a\u57df\uff0c\u6216\u9009\u62e9\u5171\u4eab\u5168\u753b\u9762\u3002",
@@ -976,6 +977,7 @@
         const pendingCandidatesRef = useRef(new Map());
         const processedSignalIdsRef = useRef(new Set());
         const remoteFrameStatsRef = useRef({frames: -1, unchangedTicks: 0});
+        const sourceWindowRef = useRef(null);
         const cropRef = useRef(null);
         const [crop, setCrop] = useState(null);
         const [screenshot, setScreenshot] = useState(null);
@@ -996,6 +998,11 @@
                 setCropConfirmed(false);
             }
         }, [crop]);
+
+        useEffect(() => {
+            sourceWindowRef.current = null;
+            setSourcePreviewOpen(false);
+        }, [sourceUrl]);
 
         const updateImageBox = useCallback(() => {
             const stage = cropStageRef.current;
@@ -1210,7 +1217,6 @@
             setRemotePlayPrompt("");
             setScreenshot(null);
             setCrop(null);
-            setSourcePreviewOpen(false);
             setImageBox(EMPTY_IMAGE_BOX);
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = null;
@@ -1313,8 +1319,13 @@
             if (!sourceUrl) {
                 return;
             }
+            if (sourceWindowRef.current && !sourceWindowRef.current.closed) {
+                sourceWindowRef.current.focus();
+                return;
+            }
             const opened = window.open(sourceUrl, "coview_source_detail", "width=1280,height=900");
             if (opened) {
+                sourceWindowRef.current = opened;
                 opened.opener = null;
                 opened.focus();
             } else {
@@ -1382,10 +1393,6 @@
 
         async function captureForCrop() {
             setError("");
-            if (!sourcePreviewOpen && sourceUrl) {
-                openSourceDetailPage();
-                return;
-            }
             try {
                 if (rawStreamRef.current) {
                     stopShare(sharing);
@@ -1430,7 +1437,6 @@
             } catch (ex) {
                 setError(SHARE_TEXT.captureFailed);
                 stopShare(false);
-                setSourcePreviewOpen(true);
             }
         }
 
@@ -1661,26 +1667,7 @@
                         autoPlay: true,
                         playsInline: true,
                         muted: true
-                    }) : sourcePreviewOpen && sourceUrl ? h("div", {className: "source-preview"},
-                        h("div", {className: "source-preview-bar"},
-                            h("div", {className: "source-preview-title"},
-                                h("strong", null, SHARE_TEXT.sourcePreviewTitle),
-                                h("span", {className: "mono"}, sourceUrl)
-                            ),
-                            h("button", {type: "button", className: "secondary", onClick: openSourceDetailPage}, SHARE_TEXT.openSourcePage)
-                        ),
-                        h("div", {className: "source-preview-frame-wrap"},
-                            h("iframe", {
-                                className: "source-preview-frame",
-                                src: sourceUrl,
-                                title: SHARE_TEXT.sourcePreviewTitle,
-                                referrerPolicy: "no-referrer",
-                                allow: "autoplay; fullscreen; encrypted-media; picture-in-picture",
-                                allowFullScreen: true
-                            })
-                        ),
-                        h("div", {className: "source-preview-note"}, SHARE_TEXT.sourcePreviewNote)
-                    ) : h("div", {className: "empty-share"}, SHARE_TEXT.chooseCaptureTarget)
+                    }) : h("div", {className: "empty-share"}, SHARE_TEXT.chooseCaptureTarget)
                 ),
                 error ? h("div", {className: "notice error"}, error) : null,
                 h("div", {className: "button-row"},
@@ -1688,7 +1675,12 @@
                         ? h("button", {className: "danger", onClick: () => stopShare(true)}, SHARE_TEXT.stopShare)
                         : hasScreenshot
                             ? h("button", {className: "success", disabled: !crop, onClick: startShare}, SHARE_TEXT.confirmCrop)
-                            : h("button", {className: "success", onClick: captureForCrop}, sourcePreviewOpen ? SHARE_TEXT.chooseCaptureTarget : SHARE_TEXT.prepareCrop),
+                            : h("button", {className: "success", onClick: captureForCrop}, SHARE_TEXT.prepareCrop),
+                    !sharing && !hasScreenshot && sourceUrl ? h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: openSourceDetailPage
+                    }, sourcePreviewOpen ? SHARE_TEXT.focusSourcePage : SHARE_TEXT.openSourcePage) : null,
                     sharing && hasScreenshot ? h("button", {
                         type: "button",
                         className: "secondary",
