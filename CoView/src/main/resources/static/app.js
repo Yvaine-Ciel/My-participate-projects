@@ -56,6 +56,7 @@
             root.render(h(HostControlWindow, {
                 roomId,
                 floating: true,
+                onCompactChange: collapsed => resizeControlSurface(pipWindow, collapsed),
                 onClose: () => pipWindow.close()
             }));
             pipWindow.addEventListener("pagehide", () => root.unmount(), {once: true});
@@ -70,6 +71,16 @@
         return "blocked";
     }
 
+    function resizeControlSurface(targetWindow, collapsed) {
+        const size = collapsed ? {width: 96, height: 72} : {width: 430, height: 760};
+        try {
+            if (targetWindow && typeof targetWindow.resizeTo === "function") {
+                targetWindow.resizeTo(size.width, size.height);
+            }
+        } catch (ignored) {
+        }
+    }
+
     function copyDocumentStyles(targetDocument) {
         targetDocument.documentElement.lang = document.documentElement.lang || "zh-CN";
         targetDocument.body.className = "control-pip-body";
@@ -82,7 +93,17 @@
         });
 
         const pipStyle = targetDocument.createElement("style");
-        pipStyle.textContent = "html,body,#root{min-height:100%;}body{margin:0;background:#f5f7f4;overflow:auto;}.control-shell{min-height:100%;}.control-shell-floating{padding:10px;}";
+        pipStyle.textContent = [
+            "html,body,#root{width:100%;min-height:100%;}",
+            "body{margin:0;background:#f5f7f4;overflow:auto;}",
+            ".control-shell{min-height:100%;}",
+            ".control-shell-floating{padding:10px;}",
+            ".control-compact-shell{display:grid;grid-template:1fr/1fr;width:100vw;min-width:100vw;height:100vh;min-height:100vh;margin:0;padding:0;background:transparent;}",
+            ".control-compact-toggle{position:relative;display:grid;place-items:center;gap:2px;width:100%;height:100%;min-height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(135deg,rgba(54,122,77,0.92),rgba(47,111,143,0.88));box-shadow:none;color:#fff;}",
+            ".control-compact-toggle:hover{transform:none;}",
+            ".control-compact-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.2);font-size:19px;font-weight:900;}",
+            ".control-compact-label{font-size:12px;font-weight:850;line-height:1;}"
+        ].join("");
         targetDocument.head.appendChild(pipStyle);
     }
 
@@ -795,7 +816,7 @@
         );
     }
 
-    function HostControlWindow({roomId, floating = false, onClose}) {
+    function HostControlWindow({roomId, floating = false, onCompactChange, onClose}) {
         const [participantId] = useState(() => sessionStorage.getItem(participantKey(roomId)) || "");
         const [room, setRoom] = useState(null);
         const [wsStatus, setWsStatus] = useState("");
@@ -803,6 +824,8 @@
         const [toast, setToast] = useState("");
         const [chatMessages, setChatMessages] = useState([]);
         const [joinRequests, setJoinRequests] = useState([]);
+        const [compact, setCompact] = useState(false);
+        const [compactSeenSignalCount, setCompactSeenSignalCount] = useState(0);
         const wsRef = useRef(null);
 
         useEffect(() => {
@@ -861,6 +884,22 @@
         }, [room, participantId]);
 
         const isOwner = Boolean(participant && participant.owner);
+        const controlSignalCount = chatMessages.length + joinRequests.length;
+        const hasCompactAlert = floating && compact && controlSignalCount > compactSeenSignalCount;
+
+        useEffect(() => {
+            if (!floating || compact) {
+                return;
+            }
+            setCompactSeenSignalCount(controlSignalCount);
+        }, [floating, compact, controlSignalCount]);
+
+        useEffect(() => {
+            if (!floating || !onCompactChange) {
+                return;
+            }
+            onCompactChange(compact);
+        }, [floating, compact, onCompactChange]);
 
         useEffect(() => {
             if (!room || !participantId || !isOwner) {
@@ -919,11 +958,36 @@
             }
         }
 
+        function collapseControl() {
+            setCompactSeenSignalCount(controlSignalCount);
+            setCompact(true);
+        }
+
+        function expandControl() {
+            setCompact(false);
+        }
+
+        if (floating && compact) {
+            return h("div", {className: "control-compact-shell"},
+                h("button", {
+                    type: "button",
+                    className: "control-compact-toggle" + (hasCompactAlert ? " has-alert" : ""),
+                    title: hasCompactAlert ? "有新的房间消息，点击展开 CoView" : "展开 CoView 房主管理台",
+                    onClick: expandControl
+                },
+                    h("span", {className: "control-compact-mark"}, "C"),
+                    h("span", {className: "control-compact-label"}, "CoView"),
+                    hasCompactAlert ? h("span", {className: "floating-dot"}) : null
+                )
+            );
+        }
+
         if (error) {
             return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
                 h("header", {className: "control-header"},
                     h("strong", null, "房主管理台"),
                     h("div", {className: "control-header-actions"},
+                        floating ? h("button", {className: "secondary", onClick: collapseControl}, "折叠") : null,
                         h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
                         floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
                     )
@@ -934,7 +998,13 @@
 
         if (!room) {
             return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
-                h("header", {className: "control-header"}, h("strong", null, "房主管理台")),
+                h("header", {className: "control-header"},
+                    h("strong", null, "房主管理台"),
+                    floating ? h("div", {className: "control-header-actions"},
+                        h("button", {className: "secondary", onClick: collapseControl}, "折叠"),
+                        onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
+                    ) : null
+                ),
                 h("div", {className: "notice"}, "正在连接房间")
             );
         }
@@ -944,6 +1014,7 @@
                 h("header", {className: "control-header"},
                     h("strong", null, "房主管理台"),
                     h("div", {className: "control-header-actions"},
+                        floating ? h("button", {className: "secondary", onClick: collapseControl}, "折叠") : null,
                         h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
                         floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
                     )
@@ -959,6 +1030,7 @@
                     h("span", {className: "mono"}, room.id)
                 ),
                 h("div", {className: "control-header-actions"},
+                    floating ? h("button", {className: "secondary", onClick: collapseControl}, "折叠") : null,
                     h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
                     floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
                 )
