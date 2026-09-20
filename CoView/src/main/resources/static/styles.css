@@ -697,6 +697,19 @@ video {
     padding: 0 16px 16px;
 }
 
+.source-form + button {
+    margin: 0 16px 16px;
+    width: calc(100% - 32px);
+}
+
+.control-source-panel .source-form textarea {
+    min-height: 82px;
+}
+
+.control-source-panel .source-form + button {
+    margin-bottom: 0;
+}
+
 .join-request-list {
     display: grid;
     gap: 12px;
@@ -892,6 +905,13 @@ video {
     background: #ffffff;
 }
 
+.control-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .control-header strong,
 .control-header span {
     display: block;
@@ -921,6 +941,20 @@ video {
 
 .control-shell .join-request-item {
     grid-template-columns: 1fr;
+}
+
+.control-shell-floating .control-header {
+    align-items: flex-start;
+}
+
+.control-shell-floating .control-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.control-shell-floating button {
+    min-height: 38px;
+    padding: 0 12px;
 }
 
 .watch-chat-row.owner-floating-enabled {

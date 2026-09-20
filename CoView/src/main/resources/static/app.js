@@ -33,6 +33,59 @@
         return window.location.origin + window.location.pathname + "#/control/" + encodeURIComponent(roomId);
     }
 
+    async function openHostControlSurface(roomId) {
+        if (window.documentPictureInPicture && window.documentPictureInPicture.requestWindow) {
+            const existingWindow = window.documentPictureInPicture.window;
+            if (existingWindow && !existingWindow.closed) {
+                existingWindow.focus();
+                return "pip";
+            }
+
+            const pipWindow = await window.documentPictureInPicture.requestWindow({
+                width: 430,
+                height: 760
+            });
+            pipWindow.document.title = "CoView 房主管理台";
+            copyDocumentStyles(pipWindow.document);
+
+            const rootNode = pipWindow.document.createElement("div");
+            rootNode.id = "root";
+            pipWindow.document.body.appendChild(rootNode);
+
+            const root = ReactDOM.createRoot(rootNode);
+            root.render(h(HostControlWindow, {
+                roomId,
+                floating: true,
+                onClose: () => pipWindow.close()
+            }));
+            pipWindow.addEventListener("pagehide", () => root.unmount(), {once: true});
+            return "pip";
+        }
+
+        const opened = window.open(controlUrl(roomId), "coview_host_control_" + roomId, "popup=yes,width=430,height=760");
+        if (opened) {
+            opened.focus();
+            return "popup";
+        }
+        return "blocked";
+    }
+
+    function copyDocumentStyles(targetDocument) {
+        targetDocument.documentElement.lang = document.documentElement.lang || "zh-CN";
+        targetDocument.body.className = "control-pip-body";
+        targetDocument.querySelectorAll("style, link[rel='stylesheet']").forEach(node => node.remove());
+        const base = targetDocument.createElement("base");
+        base.href = window.location.origin + window.location.pathname;
+        targetDocument.head.appendChild(base);
+        document.querySelectorAll("style, link[rel='stylesheet']").forEach(node => {
+            targetDocument.head.appendChild(node.cloneNode(true));
+        });
+
+        const pipStyle = targetDocument.createElement("style");
+        pipStyle.textContent = "html,body,#root{min-height:100%;}body{margin:0;background:#f5f7f4;overflow:auto;}.control-shell{min-height:100%;}.control-shell-floating{padding:10px;}";
+        targetDocument.head.appendChild(pipStyle);
+    }
+
     async function api(path, options) {
         const response = await fetch(path, {
             headers: {"Content-Type": "application/json"},
@@ -62,7 +115,7 @@
 
     const SHARE_TEXT = Object.freeze({
         sourcePreviewTitle: "\u8be6\u60c5\u9875\u5df2\u51c6\u5907",
-        sourcePreviewNote: "\u5982\u679c\u539f\u64ad\u653e\u9875\u5df2\u5728\u540e\u53f0\u6253\u5f00\uff0c\u76f4\u63a5\u9009\u62e9\u5b83\u8fdb\u884c\u88c1\u526a\u3002",
+        sourcePreviewNote: "\u514d\u5b89\u88c5\u6269\u5c55\uff1a\u4fdd\u6301 CoView \u623f\u95f4\u6216\u623f\u4e3b\u7ba1\u7406\u53f0\u6253\u5f00\uff0c\u9009\u62e9\u64ad\u653e\u9875\u9762\u6216\u7a97\u53e3\u5373\u53ef\u5171\u4eab\u3002",
         openSourcePage: "\u6253\u5f00\u8be6\u60c5\u9875",
         focusSourcePage: "\u5207\u56de\u8be6\u60c5\u9875",
         prepareCrop: "\u9009\u62e9\u64ad\u653e\u9875\u9762\u8fdb\u884c\u88c1\u526a",
@@ -593,15 +646,21 @@
             }
         }
 
-        function openHostControlWindow() {
+        async function openHostControlWindow() {
             if (!room) {
                 return;
             }
-            const opened = window.open(controlUrl(room.id), "coview_host_control_" + room.id, "width=420,height=720");
-            if (opened) {
-                opened.focus();
-            } else {
-                setToast("浏览器阻止了房主小窗，请允许弹窗后再试。");
+            try {
+                const mode = await openHostControlSurface(room.id);
+                if (mode === "pip") {
+                    setToast("房主管理台已打开为置顶浮窗，可以切回原视频网页继续操作。");
+                } else if (mode === "popup") {
+                    setToast("当前浏览器不支持置顶浮窗，已打开独立管理台窗口。");
+                } else {
+                    setToast("浏览器阻止了房主管理台，请允许弹窗后再试。");
+                }
+            } catch (ex) {
+                setToast("无法打开置顶浮窗，当前浏览器可能不支持该能力。请尝试 Chrome 或 Edge。");
             }
         }
 
@@ -657,9 +716,9 @@
                     isOwner ? h(SourceSwitcher, {room, participantId, setRoom, sendWs}) : null,
                     isOwner ? h("button", {
                         type: "button",
-                        className: "secondary",
+                        className: "success",
                         onClick: openHostControlWindow
-                    }, "房主小窗") : null
+                    }, "打开置顶管理台") : null
                 ),
                 h("section", {className: "sidebar-panel full-row-panel"},
                     h("div", {className: "sidebar-title"},
@@ -701,7 +760,7 @@
                 type: "button",
                 className: "host-floating-toggle" + (hasAlert ? " has-alert" : ""),
                 onClick: onToggle,
-                title: "展开 CoView 房主浮窗"
+                title: "展开 CoView 房主管理台"
             },
                 h("span", {className: "host-floating-mark"}, "C"),
                 hasAlert ? h("span", {className: "floating-dot"}) : null
@@ -711,16 +770,11 @@
         return h("aside", {className: "host-floating-panel"},
             h("div", {className: "host-floating-header"},
                 h("div", null,
-                    h("strong", null, "CoView 房主浮窗"),
+                    h("strong", null, "CoView 房主管理台"),
                     h("span", {className: "mono"}, room.id)
                 ),
                 h("div", {className: "host-floating-actions"},
-                    h("button", {
-                        type: "button",
-                        className: "secondary",
-                        onClick: () => window.alert("桌面浏览器可安装项目里的 coview-extension 扩展。安装后先回到 CoView 房主房间完成自动配对，再打开视频网页即可自动显示浮窗。手机官方 App 需要原生 App 或系统悬浮窗权限，网页无法直接覆盖。")
-                    }, "浏览器扩展"),
-                    h("button", {type: "button", className: "secondary", onClick: onOpenWindow}, "独立小窗"),
+                    h("button", {type: "button", className: "secondary", onClick: onOpenWindow}, "置顶浮窗"),
                     h("button", {type: "button", className: "secondary", onClick: onToggle}, "收起")
                 )
             ),
@@ -741,7 +795,7 @@
         );
     }
 
-    function HostControlWindow({roomId}) {
+    function HostControlWindow({roomId, floating = false, onClose}) {
         const [participantId] = useState(() => sessionStorage.getItem(participantKey(roomId)) || "");
         const [room, setRoom] = useState(null);
         const [wsStatus, setWsStatus] = useState("");
@@ -753,7 +807,7 @@
 
         useEffect(() => {
             if (!participantId) {
-                setError("请先在主房间中以房主身份进入，再打开房主小窗。");
+                setError("请先在主房间中以房主身份进入，再打开房主管理台。");
                 return undefined;
             }
             let mounted = true;
@@ -853,6 +907,11 @@
         }
 
         function focusMainRoom() {
+            if (floating) {
+                window.focus();
+                navigateToRoom(roomId);
+                return;
+            }
             if (window.opener && !window.opener.closed) {
                 window.opener.focus();
             } else {
@@ -861,39 +920,48 @@
         }
 
         if (error) {
-            return h("div", {className: "control-shell"},
+            return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
                 h("header", {className: "control-header"},
-                    h("strong", null, "房主小窗"),
-                    h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+                    h("strong", null, "房主管理台"),
+                    h("div", {className: "control-header-actions"},
+                        h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
+                        floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
+                    )
                 ),
                 h("div", {className: "notice error"}, error)
             );
         }
 
         if (!room) {
-            return h("div", {className: "control-shell"},
-                h("header", {className: "control-header"}, h("strong", null, "房主小窗")),
+            return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
+                h("header", {className: "control-header"}, h("strong", null, "房主管理台")),
                 h("div", {className: "notice"}, "正在连接房间")
             );
         }
 
         if (!isOwner) {
-            return h("div", {className: "control-shell"},
+            return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
                 h("header", {className: "control-header"},
-                    h("strong", null, "房主小窗"),
-                    h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+                    h("strong", null, "房主管理台"),
+                    h("div", {className: "control-header-actions"},
+                        h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
+                        floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
+                    )
                 ),
-                h("div", {className: "notice error"}, "只有房主可以使用这个控制小窗。")
+                h("div", {className: "notice error"}, "只有房主可以使用这个管理台。")
             );
         }
 
-        return h("div", {className: "control-shell"},
+        return h("div", {className: "control-shell" + (floating ? " control-shell-floating" : "")},
             h("header", {className: "control-header"},
                 h("div", null,
-                    h("strong", null, "房主小窗"),
+                    h("strong", null, "房主管理台"),
                     h("span", {className: "mono"}, room.id)
                 ),
-                h("button", {className: "secondary", onClick: focusMainRoom}, "主房间")
+                h("div", {className: "control-header-actions"},
+                    h("button", {className: "secondary", onClick: focusMainRoom}, "主房间"),
+                    floating && onClose ? h("button", {className: "secondary", onClick: onClose}, "关闭") : null
+                )
             ),
             h("div", {className: "control-status-row"},
                 h("span", {className: "status-pill " + (wsStatus === "已连接" ? "online" : "")}, wsStatus || "未连接"),
@@ -901,6 +969,13 @@
                 h("span", null, room.screenShareActive ? "共享中" : "未共享")
             ),
             toast ? h("div", {className: "notice"}, toast) : null,
+            h("section", {className: "sidebar-panel control-source-panel"},
+                h("div", {className: "sidebar-title"},
+                    h("strong", null, "当前来源"),
+                    h("span", null, room.source.reason)
+                ),
+                h(SourceSwitcher, {room, participantId, setRoom, sendWs})
+            ),
             h(JoinRequestsPanel, {requests: joinRequests, onDecision: decideJoinRequest}),
             h(ChatPanel, {messages: chatMessages, participantId, sendWs}),
             h("section", {className: "sidebar-panel"},
