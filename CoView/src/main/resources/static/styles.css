@@ -376,6 +376,35 @@ video {
     border-bottom: 1px solid var(--line);
 }
 
+.stage-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.stage-actions button {
+    min-height: 36px;
+    width: auto;
+    padding: 0 12px;
+}
+
+.watch-stage:fullscreen,
+.watch-stage.stage-fullscreen {
+    width: 100vw;
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+}
+
+.watch-stage:fullscreen .stage-toolbar,
+.watch-stage.stage-fullscreen .stage-toolbar {
+    position: relative;
+    z-index: 90;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(12px);
+}
+
 .stage-title {
     min-width: 0;
 }
@@ -1125,6 +1154,21 @@ video {
 
 .guest-floating-panel .chat-toggle {
     background: rgba(255, 255, 255, 0.72);
+}
+
+.watch-stage:fullscreen .guest-floating-toggle,
+.watch-stage:fullscreen .guest-floating-panel,
+.watch-stage.stage-fullscreen .guest-floating-toggle,
+.watch-stage.stage-fullscreen .guest-floating-panel,
+.guest-floating-toggle.fullscreen-floating,
+.guest-floating-panel.fullscreen-floating {
+    z-index: 120;
+}
+
+.watch-stage:fullscreen .guest-floating-panel,
+.watch-stage.stage-fullscreen .guest-floating-panel,
+.guest-floating-panel.fullscreen-floating {
+    max-height: min(72vh, 620px);
 }
 
 .host-floating-panel .host-floating-members {

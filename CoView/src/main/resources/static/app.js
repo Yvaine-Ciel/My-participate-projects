@@ -525,6 +525,8 @@
         const [hostPanelSeenSignalCount, setHostPanelSeenSignalCount] = useState(0);
         const [guestPanelCollapsed, setGuestPanelCollapsed] = useState(false);
         const [guestPanelSeenMessageCount, setGuestPanelSeenMessageCount] = useState(0);
+        const [stageFullscreen, setStageFullscreen] = useState(false);
+        const watchStageRef = useRef(null);
         const wsRef = useRef(null);
         const wsRoomId = room ? room.id : "";
 
@@ -618,6 +620,20 @@
         }, [isOwner, guestPanelCollapsed, chatMessages.length]);
 
         useEffect(() => {
+            const onFullscreenChange = () => {
+                const activeElement = document.fullscreenElement;
+                const isStageFullscreen = Boolean(watchStageRef.current && activeElement === watchStageRef.current);
+                setStageFullscreen(isStageFullscreen);
+                if (!isOwner && isStageFullscreen) {
+                    setGuestPanelCollapsed(true);
+                    setGuestPanelSeenMessageCount(chatMessages.length);
+                }
+            };
+            document.addEventListener("fullscreenchange", onFullscreenChange);
+            return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+        }, [isOwner, chatMessages.length]);
+
+        useEffect(() => {
             if (!room || !participantId || !isOwner) {
                 setJoinRequests([]);
                 return undefined;
@@ -697,6 +713,26 @@
             }
         }
 
+        function toggleStageFullscreen() {
+            const stage = watchStageRef.current;
+            if (!stage || !stage.requestFullscreen) {
+                setToast("当前浏览器不支持房间内全屏。");
+                return;
+            }
+            if (document.fullscreenElement === stage) {
+                document.exitFullscreen && document.exitFullscreen();
+                return;
+            }
+            stage.requestFullscreen()
+                .then(() => {
+                    if (!isOwner) {
+                        setGuestPanelCollapsed(true);
+                        setGuestPanelSeenMessageCount(chatMessages.length);
+                    }
+                })
+                .catch(() => setToast("无法进入全屏，请再点击一次试试。"));
+        }
+
         if (!participantId) {
             return h(Shell, null, h(DirectJoinPanel, {
                 roomId: normalizeRoomInput(roomId),
@@ -727,17 +763,37 @@
             h("div", {className: "room-page-layout"},
                 toast ? h("div", {className: "notice"}, toast) : null,
                 h("div", {className: "watch-chat-row floating-panel-enabled"},
-                    h("section", {className: "watch-stage"},
+                    h("section", {
+                        className: "watch-stage" + (stageFullscreen ? " stage-fullscreen" : ""),
+                        ref: watchStageRef
+                    },
                         h("div", {className: "stage-toolbar"},
                             h("div", {className: "stage-title"},
                                 h("strong", null, modeLabel(room.source.mode)),
                                 h("span", null, room.source.normalizedUrl)
                             ),
-                            h("span", {className: "role-badge"}, isOwner ? "房主" : "房客")
+                            h("div", {className: "stage-actions"},
+                                !isOwner ? h("button", {
+                                    type: "button",
+                                    className: "secondary",
+                                    onClick: toggleStageFullscreen
+                                }, stageFullscreen ? "退出全屏" : "全屏") : null,
+                                h("span", {className: "role-badge"}, isOwner ? "房主" : "房客")
+                            )
                         ),
                         room.source.mode === "SYNC"
                             ? h(DirectPlayer, {room, participantId, isOwner, sendWs, playbackEvent})
-                            : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents})
+                            : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents}),
+                        !isOwner ? h(GuestFloatingPanel, {
+                            room,
+                            collapsed: guestPanelCollapsed,
+                            hasAlert: guestPanelHasAlert,
+                            messages: chatMessages,
+                            participantId,
+                            sendWs,
+                            fullscreen: stageFullscreen,
+                            onToggle: () => setGuestPanelCollapsed(value => !value)
+                        }) : null
                     )
                 ),
                 h("section", {className: "sidebar-panel full-row-panel"},
@@ -770,15 +826,7 @@
                     onDecision: decideJoinRequest,
                     onToggle: () => setHostPanelCollapsed(value => !value),
                     onOpenWindow: openHostControlWindow
-                }) : h(GuestFloatingPanel, {
-                    room,
-                    collapsed: guestPanelCollapsed,
-                    hasAlert: guestPanelHasAlert,
-                    messages: chatMessages,
-                    participantId,
-                    sendWs,
-                    onToggle: () => setGuestPanelCollapsed(value => !value)
-                })
+                }) : null
             )
         );
     }
@@ -842,12 +890,13 @@
         messages,
         participantId,
         sendWs,
+        fullscreen = false,
         onToggle
     }) {
         if (collapsed) {
             return h("button", {
                 type: "button",
-                className: "guest-floating-toggle" + (hasAlert ? " has-alert" : ""),
+                className: "guest-floating-toggle" + (hasAlert ? " has-alert" : "") + (fullscreen ? " fullscreen-floating" : ""),
                 onClick: onToggle,
                 title: "展开 CoView 交流对话"
             },
@@ -856,7 +905,7 @@
             );
         }
 
-        return h("aside", {className: "guest-floating-panel"},
+        return h("aside", {className: "guest-floating-panel" + (fullscreen ? " fullscreen-floating" : "")},
             h("div", {className: "guest-floating-header"},
                 h("div", null,
                     h("strong", null, "交流对话"),
@@ -1354,6 +1403,7 @@
             h("video", {
                 ref: videoRef,
                 controls: true,
+                controlsList: isOwner ? undefined : "nofullscreen",
                 playsInline: true,
                 preload: "metadata",
                 onPlay: () => sendPlayback("play"),
@@ -2196,6 +2246,7 @@
                     autoPlay: true,
                     playsInline: true,
                     controls: true,
+                    controlsList: isOwner ? undefined : "nofullscreen",
                     muted: remoteMuted,
                     onLoadedMetadata: () => playRemoteVideo(false),
                     onCanPlay: () => playRemoteVideo(false),
