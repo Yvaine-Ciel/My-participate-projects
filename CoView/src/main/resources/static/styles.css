@@ -957,12 +957,15 @@ video {
     padding: 0 12px;
 }
 
-.watch-chat-row.owner-floating-enabled {
+.watch-chat-row.owner-floating-enabled,
+.watch-chat-row.floating-panel-enabled {
     grid-template-columns: minmax(0, 1fr);
 }
 
 .host-floating-toggle,
-.host-floating-panel {
+.host-floating-panel,
+.guest-floating-toggle,
+.guest-floating-panel {
     position: fixed;
     right: 22px;
     bottom: 22px;
@@ -983,6 +986,25 @@ video {
 }
 
 .host-floating-mark {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.guest-floating-toggle {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 999px;
+    background: rgba(54, 122, 77, 0.86);
+    box-shadow: 0 18px 40px rgba(31, 45, 76, 0.28);
+    backdrop-filter: blur(14px);
+}
+
+.guest-floating-mark {
     color: #ffffff;
     font-size: 24px;
     font-weight: 900;
@@ -1013,34 +1035,57 @@ video {
     backdrop-filter: blur(18px);
 }
 
+.guest-floating-panel {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 10px;
+    width: min(390px, calc(100vw - 28px));
+    max-height: min(68vh, 620px);
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 22px 56px rgba(31, 45, 76, 0.24);
+    backdrop-filter: blur(18px);
+}
+
 .host-floating-header,
 .host-floating-status,
-.host-floating-actions {
+.host-floating-actions,
+.guest-floating-header,
+.guest-floating-status,
+.guest-floating-actions {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.host-floating-header {
+.host-floating-header,
+.guest-floating-header {
     justify-content: space-between;
 }
 
 .host-floating-header strong,
-.host-floating-header span {
+.host-floating-header span,
+.guest-floating-header strong,
+.guest-floating-header span {
     display: block;
 }
 
-.host-floating-header span {
+.host-floating-header span,
+.guest-floating-header span {
     margin-top: 2px;
     color: var(--muted);
     font-size: 12px;
 }
 
-.host-floating-actions {
+.host-floating-actions,
+.guest-floating-actions {
     flex-shrink: 0;
 }
 
-.host-floating-status {
+.host-floating-status,
+.guest-floating-status {
     flex-wrap: wrap;
     color: var(--muted);
     font-size: 13px;
@@ -1069,6 +1114,17 @@ video {
 .host-floating-panel .chat-panel {
     min-height: 260px;
     height: min(36vh, 340px);
+}
+
+.guest-floating-panel .chat-panel {
+    min-height: 300px;
+    height: min(42vh, 420px);
+    background: rgba(255, 255, 255, 0.62);
+    box-shadow: none;
+}
+
+.guest-floating-panel .chat-toggle {
+    background: rgba(255, 255, 255, 0.72);
 }
 
 .host-floating-panel .host-floating-members {
@@ -1173,10 +1229,12 @@ video {
     }
 }
 
-button.host-floating-toggle {
+button.host-floating-toggle,
+button.guest-floating-toggle {
     width: 58px;
 }
 
-.host-floating-panel button {
+.host-floating-panel button,
+.guest-floating-panel button {
     width: auto;
 }

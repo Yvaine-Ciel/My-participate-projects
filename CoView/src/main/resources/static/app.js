@@ -523,6 +523,8 @@
         const [joinRequests, setJoinRequests] = useState([]);
         const [hostPanelCollapsed, setHostPanelCollapsed] = useState(false);
         const [hostPanelSeenSignalCount, setHostPanelSeenSignalCount] = useState(0);
+        const [guestPanelCollapsed, setGuestPanelCollapsed] = useState(false);
+        const [guestPanelSeenMessageCount, setGuestPanelSeenMessageCount] = useState(0);
         const wsRef = useRef(null);
         const wsRoomId = room ? room.id : "";
 
@@ -595,6 +597,7 @@
         const isOwner = Boolean(participant && participant.owner);
         const hostPanelSignalCount = chatMessages.length + joinRequests.length;
         const hostPanelHasAlert = isOwner && hostPanelCollapsed && hostPanelSignalCount > hostPanelSeenSignalCount;
+        const guestPanelHasAlert = !isOwner && guestPanelCollapsed && chatMessages.length > guestPanelSeenMessageCount;
 
         useEffect(() => {
             if (!isOwner) {
@@ -604,6 +607,15 @@
                 setHostPanelSeenSignalCount(hostPanelSignalCount);
             }
         }, [isOwner, hostPanelCollapsed, hostPanelSignalCount]);
+
+        useEffect(() => {
+            if (isOwner) {
+                return;
+            }
+            if (!guestPanelCollapsed) {
+                setGuestPanelSeenMessageCount(chatMessages.length);
+            }
+        }, [isOwner, guestPanelCollapsed, chatMessages.length]);
 
         useEffect(() => {
             if (!room || !participantId || !isOwner) {
@@ -714,7 +726,7 @@
         return h(Shell, {room, wsStatus, onLeave: leaveRoom},
             h("div", {className: "room-page-layout"},
                 toast ? h("div", {className: "notice"}, toast) : null,
-                h("div", {className: "watch-chat-row" + (isOwner ? " owner-floating-enabled" : "")},
+                h("div", {className: "watch-chat-row floating-panel-enabled"},
                     h("section", {className: "watch-stage"},
                         h("div", {className: "stage-toolbar"},
                             h("div", {className: "stage-title"},
@@ -726,8 +738,7 @@
                         room.source.mode === "SYNC"
                             ? h(DirectPlayer, {room, participantId, isOwner, sendWs, playbackEvent})
                             : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents})
-                    ),
-                    isOwner ? null : h(ChatPanel, {messages: chatMessages, participantId, sendWs})
+                    )
                 ),
                 h("section", {className: "sidebar-panel full-row-panel"},
                     h("div", {className: "sidebar-title"},
@@ -759,7 +770,15 @@
                     onDecision: decideJoinRequest,
                     onToggle: () => setHostPanelCollapsed(value => !value),
                     onOpenWindow: openHostControlWindow
-                }) : null
+                }) : h(GuestFloatingPanel, {
+                    room,
+                    collapsed: guestPanelCollapsed,
+                    hasAlert: guestPanelHasAlert,
+                    messages: chatMessages,
+                    participantId,
+                    sendWs,
+                    onToggle: () => setGuestPanelCollapsed(value => !value)
+                })
             )
         );
     }
@@ -813,6 +832,46 @@
                 ),
                 h(ParticipantList, {room})
             )
+        );
+    }
+
+    function GuestFloatingPanel({
+        room,
+        collapsed,
+        hasAlert,
+        messages,
+        participantId,
+        sendWs,
+        onToggle
+    }) {
+        if (collapsed) {
+            return h("button", {
+                type: "button",
+                className: "guest-floating-toggle" + (hasAlert ? " has-alert" : ""),
+                onClick: onToggle,
+                title: "展开 CoView 交流对话"
+            },
+                h("span", {className: "guest-floating-mark"}, "C"),
+                hasAlert ? h("span", {className: "floating-dot"}) : null
+            );
+        }
+
+        return h("aside", {className: "guest-floating-panel"},
+            h("div", {className: "guest-floating-header"},
+                h("div", null,
+                    h("strong", null, "交流对话"),
+                    h("span", {className: "mono"}, room.id)
+                ),
+                h("div", {className: "guest-floating-actions"},
+                    h("button", {type: "button", className: "secondary", onClick: onToggle}, "收起")
+                )
+            ),
+            h("div", {className: "guest-floating-status"},
+                h("span", null, room.participants.length + " 人"),
+                h("span", null, room.screenShareActive ? "共享中" : "未共享"),
+                messages.length ? h("span", null, messages.length + " 条消息") : null
+            ),
+            h(ChatPanel, {messages, participantId, sendWs})
         );
     }
 
