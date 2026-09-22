@@ -97,12 +97,15 @@ class RoomServiceTest {
     }
 
     @Test
-    void viewerCanControlSynchronizedPlayback() {
+    void onlyOwnerCanControlSynchronizedPlayback() {
         String roomId = roomService.generateCandidateRoomId();
         RoomSessionResponse owner = roomService.createRoom(roomId, "Alice", "https://cdn.example.com/movie.mp4", "1234", "1234");
         RoomSessionResponse viewer = approveViewer(owner, "Bob");
 
-        PlaybackState state = roomService.applyPlayback(owner.roomId(), viewer.participantId(), "play", 42.5);
+        assertThatThrownBy(() -> roomService.applyPlayback(owner.roomId(), viewer.participantId(), "play", 42.5))
+                .isInstanceOf(ResponseStatusException.class);
+
+        PlaybackState state = roomService.applyPlayback(owner.roomId(), owner.participantId(), "play", 42.5);
 
         assertThat(state.playing()).isTrue();
         assertThat(state.positionSeconds()).isEqualTo(42.5);

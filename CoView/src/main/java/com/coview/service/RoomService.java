@@ -135,6 +135,7 @@ public class RoomService {
         Room room = requireRoom(roomId);
         Participant participant = room.findParticipant(participantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "\u6210\u5458\u8eab\u4efd\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u52a0\u5165\u623f\u95f4\u3002"));
+        requireOwner(room, participantId);
         participant.touch();
 
         PlaybackState next = switch (action == null ? "" : action.toLowerCase(Locale.ROOT)) {

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -84,6 +85,8 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
             String type = text(root, "type").orElse("");
             switch (type) {
                 case "playback" -> handlePlayback(roomId, participantId, root);
+                case "playback-request" -> handlePlaybackRequest(roomId, participantId, root);
+                case "playback-request-decision" -> handlePlaybackRequestDecision(roomId, participantId, root);
                 case "webrtc-signal" -> handleWebRtcSignal(roomId, participantId, root);
                 case "screen-share" -> handleScreenShare(roomId, participantId, root);
                 case "chat" -> handleChat(roomId, participantId, root);
@@ -121,8 +124,8 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handlePlayback(String roomId, String participantId, JsonNode root) {
-        String action = text(root, "action").orElse("");
-        double position = root.path("positionSeconds").asDouble(0.0);
+        String action = normalizePlaybackAction(text(root, "action").orElse(""), true);
+        double position = Math.max(0.0, root.path("positionSeconds").asDouble(0.0));
         PlaybackState state = roomService.applyPlayback(roomId, participantId, action, position);
 
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -131,6 +134,69 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         payload.put("action", action);
         payload.put("state", state);
         broadcast(roomId, payload, null);
+    }
+
+    private void handlePlaybackRequest(String roomId, String participantId, JsonNode root) {
+        Room room = roomService.requireRoom(roomId);
+        Participant participant = roomService.requireParticipant(roomId, participantId);
+        String action = normalizePlaybackAction(text(root, "action").orElse(""), false, true);
+        double position = Math.max(0.0, root.path("positionSeconds").asDouble(0.0));
+
+        if (participant.isOwner()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "房主可以直接控制播放。");
+        }
+        participant.touch();
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "playback-request");
+        payload.put("id", UUID.randomUUID().toString());
+        payload.put("requesterId", participant.getId());
+        payload.put("requesterName", participant.getDisplayName());
+        payload.put("action", action);
+        payload.put("positionSeconds", position);
+        payload.put("requestedAt", Instant.now());
+        sendToParticipant(roomId, room.getOwnerId(), payload);
+    }
+
+    private void handlePlaybackRequestDecision(String roomId, String participantId, JsonNode root) {
+        Room room = roomService.requireRoom(roomId);
+        if (!room.getOwnerId().equals(participantId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有房主可以处理播放请求。");
+        }
+
+        String requestId = text(root, "requestId").orElse("");
+        String requesterId = text(root, "requesterId").orElse("");
+        boolean approved = root.path("approved").asBoolean(false);
+        String action = normalizePlaybackAction(text(root, "action").orElse(""), false, true);
+        double position = Math.max(0.0, root.path("positionSeconds").asDouble(0.0));
+        if (requestId.isBlank() || requesterId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "缺少播放请求信息。");
+        }
+        room.findParticipant(requesterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "请求的房客已不在房间中。"));
+
+        if (approved && isPlaybackStateAction(action)) {
+            PlaybackState state = roomService.applyPlayback(roomId, participantId, action, position);
+            Map<String, Object> playbackPayload = new LinkedHashMap<>();
+            playbackPayload.put("type", "playback");
+            playbackPayload.put("senderId", participantId);
+            playbackPayload.put("action", action);
+            playbackPayload.put("state", state);
+            broadcast(roomId, playbackPayload, null);
+        }
+
+        Map<String, Object> decisionPayload = new LinkedHashMap<>();
+        decisionPayload.put("type", "playback-request-decision");
+        decisionPayload.put("requestId", requestId);
+        decisionPayload.put("requesterId", requesterId);
+        decisionPayload.put("approved", approved);
+        decisionPayload.put("action", action);
+        decisionPayload.put("positionSeconds", position);
+        decisionPayload.put("decidedAt", Instant.now());
+        sendToParticipant(roomId, room.getOwnerId(), decisionPayload);
+        if (!room.getOwnerId().equals(requesterId)) {
+            sendToParticipant(roomId, requesterId, decisionPayload);
+        }
     }
 
     private void handleWebRtcSignal(String roomId, String participantId, JsonNode root) {
@@ -230,7 +296,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
             try {
                 session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
             } catch (IOException ignored) {
-                // 断开的连接会在关闭回调或下一次广播时清理。
+                // Closed sockets are cleaned up on close callbacks or later broadcasts.
             }
         }
     }
@@ -290,5 +356,31 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         }
         String text = value.asText();
         return text == null || text.isBlank() ? Optional.empty() : Optional.of(text);
+    }
+
+    private String normalizePlaybackAction(String rawAction) {
+        return normalizePlaybackAction(rawAction, false, false);
+    }
+
+    private String normalizePlaybackAction(String rawAction, boolean allowState) {
+        return normalizePlaybackAction(rawAction, allowState, false);
+    }
+
+    private String normalizePlaybackAction(String rawAction, boolean allowState, boolean allowRequestOnly) {
+        String action = Optional.ofNullable(rawAction).orElse("").toLowerCase(Locale.ROOT);
+        if ("play".equals(action) || "pause".equals(action) || "seek".equals(action)
+                || (allowState && "state".equals(action))
+                || (allowRequestOnly && isRequestOnlyAction(action))) {
+            return action;
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "未知的播放操作。");
+    }
+
+    private boolean isPlaybackStateAction(String action) {
+        return "play".equals(action) || "pause".equals(action) || "seek".equals(action);
+    }
+
+    private boolean isRequestOnlyAction(String action) {
+        return "danmaku".equals(action) || "danmaku-on".equals(action) || "danmaku-off".equals(action);
     }
 }

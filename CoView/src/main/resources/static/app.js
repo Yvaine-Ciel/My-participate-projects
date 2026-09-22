@@ -170,6 +170,43 @@
         autoplayBlocked: "\u6d4f\u89c8\u5668\u9700\u8981\u4f60\u70b9\u51fb\u4e00\u6b21\u624d\u80fd\u7ee7\u7eed\u540c\u6b65\u64ad\u653e\u3002"
     });
 
+    function playbackActionLabel(action) {
+        if (action === "play") {
+            return "播放";
+        }
+        if (action === "pause") {
+            return "暂停";
+        }
+        if (action === "seek") {
+            return "跳转进度";
+        }
+        if (action === "state") {
+            return "同步进度";
+        }
+        if (action === "danmaku" || action === "danmaku-on") {
+            return "开弹幕";
+        }
+        if (action === "danmaku-off") {
+            return "关弹幕";
+        }
+        return "调整播放";
+    }
+
+    function playbackRequestSummary(request) {
+        const label = "请求" + playbackActionLabel(request.action);
+        if (request.action === "seek") {
+            return label + "，位置 " + formatPlaybackPosition(request.positionSeconds);
+        }
+        return label;
+    }
+
+    function formatPlaybackPosition(seconds) {
+        const safeSeconds = Math.max(0, Math.floor(Number(seconds || 0)));
+        const minutes = Math.floor(safeSeconds / 60);
+        const rest = String(safeSeconds % 60).padStart(2, "0");
+        return minutes + ":" + rest;
+    }
+
     function Shell({children, room, wsStatus, onLeave}) {
         return h("div", {className: "app-shell"},
             h("header", {className: "topbar"},
@@ -518,6 +555,7 @@
         const [error, setError] = useState("");
         const [toast, setToast] = useState("");
         const [playbackEvent, setPlaybackEvent] = useState(null);
+        const [playbackRequests, setPlaybackRequests] = useState([]);
         const [signalEvents, setSignalEvents] = useState([]);
         const [chatMessages, setChatMessages] = useState([]);
         const [joinRequests, setJoinRequests] = useState([]);
@@ -525,6 +563,9 @@
         const [hostPanelSeenSignalCount, setHostPanelSeenSignalCount] = useState(0);
         const [guestPanelCollapsed, setGuestPanelCollapsed] = useState(false);
         const [guestPanelSeenMessageCount, setGuestPanelSeenMessageCount] = useState(0);
+        const [guestRequestFeedback, setGuestRequestFeedback] = useState(null);
+        const [guestRequestFeedbackSeenAt, setGuestRequestFeedbackSeenAt] = useState(0);
+        const [screenMotionState, setScreenMotionState] = useState("unknown");
         const [stageFullscreen, setStageFullscreen] = useState(false);
         const watchStageRef = useRef(null);
         const wsRef = useRef(null);
@@ -561,6 +602,24 @@
                     setRoom(message.room);
                 } else if (message.type === "playback") {
                     setPlaybackEvent({...message, receivedAt: Date.now()});
+                } else if (message.type === "playback-request") {
+                    setPlaybackRequests(requests => [
+                        ...requests.filter(request => request.id !== message.id).slice(-19),
+                        {...message, receivedAt: Date.now()}
+                    ]);
+                } else if (message.type === "playback-request-decision") {
+                    setPlaybackRequests(requests => requests.filter(request => request.id !== message.requestId));
+                    if (message.requesterId === participantId) {
+                        const feedback = {
+                            ...message,
+                            text: message.approved
+                                ? "房主已同意你的" + playbackActionLabel(message.action) + "请求。"
+                                : "房主已拒绝你的" + playbackActionLabel(message.action) + "请求。",
+                            receivedAt: Date.now()
+                        };
+                        setGuestRequestFeedback(feedback);
+                        setToast(feedback.text);
+                    }
                 } else if (message.type === "webrtc-signal") {
                     setSignalEvents(events => [
                         ...events.slice(-199),
@@ -597,9 +656,12 @@
         }, [room, participantId]);
 
         const isOwner = Boolean(participant && participant.owner);
-        const hostPanelSignalCount = chatMessages.length + joinRequests.length;
+        const hostPanelSignalCount = chatMessages.length + joinRequests.length + playbackRequests.length;
         const hostPanelHasAlert = isOwner && hostPanelCollapsed && hostPanelSignalCount > hostPanelSeenSignalCount;
-        const guestPanelHasAlert = !isOwner && guestPanelCollapsed && chatMessages.length > guestPanelSeenMessageCount;
+        const hasUnseenGuestRequestFeedback = Boolean(guestRequestFeedback
+            && guestRequestFeedback.receivedAt > guestRequestFeedbackSeenAt);
+        const guestPanelHasAlert = !isOwner && guestPanelCollapsed
+            && (chatMessages.length > guestPanelSeenMessageCount || hasUnseenGuestRequestFeedback);
 
         useEffect(() => {
             if (!isOwner) {
@@ -616,8 +678,11 @@
             }
             if (!guestPanelCollapsed) {
                 setGuestPanelSeenMessageCount(chatMessages.length);
+                if (guestRequestFeedback) {
+                    setGuestRequestFeedbackSeenAt(guestRequestFeedback.receivedAt);
+                }
             }
-        }, [isOwner, guestPanelCollapsed, chatMessages.length]);
+        }, [isOwner, guestPanelCollapsed, chatMessages.length, guestRequestFeedback]);
 
         useEffect(() => {
             const onFullscreenChange = () => {
@@ -693,6 +758,31 @@
             } catch (ex) {
                 setToast(ex.message);
             }
+        }
+
+        function decidePlaybackRequest(request, approved) {
+            sendWs({
+                type: "playback-request-decision",
+                requestId: request.id,
+                requesterId: request.requesterId,
+                action: request.action,
+                positionSeconds: request.positionSeconds,
+                approved
+            });
+            setPlaybackRequests(requests => requests.filter(item => item.id !== request.id));
+        }
+
+        function sendGuestPlaybackRequest(action) {
+            if (!room || isOwner) {
+                return;
+            }
+            sendWs({
+                type: "playback-request",
+                action,
+                positionSeconds: room.source.mode === "SYNC" && room.playback
+                    ? Number(room.playback.positionSeconds || 0)
+                    : 0
+            });
         }
 
         async function openHostControlWindow() {
@@ -783,7 +873,14 @@
                         ),
                         room.source.mode === "SYNC"
                             ? h(DirectPlayer, {room, participantId, isOwner, sendWs, playbackEvent})
-                            : h(ScreenShare, {room, participantId, isOwner, sendWs, signalEvents}),
+                            : h(ScreenShare, {
+                                room,
+                                participantId,
+                                isOwner,
+                                sendWs,
+                                signalEvents,
+                                onMotionChange: setScreenMotionState
+                            }),
                         !isOwner ? h(GuestFloatingPanel, {
                             room,
                             collapsed: guestPanelCollapsed,
@@ -791,6 +888,9 @@
                             messages: chatMessages,
                             participantId,
                             sendWs,
+                            screenMotionState,
+                            requestFeedback: guestRequestFeedback,
+                            onPlaybackRequest: sendGuestPlaybackRequest,
                             fullscreen: stageFullscreen,
                             onToggle: () => setGuestPanelCollapsed(value => !value)
                         }) : null
@@ -823,7 +923,9 @@
                     participantId,
                     sendWs,
                     joinRequests,
+                    playbackRequests,
                     onDecision: decideJoinRequest,
+                    onPlaybackRequestDecision: decidePlaybackRequest,
                     onToggle: () => setHostPanelCollapsed(value => !value),
                     onOpenWindow: openHostControlWindow
                 }) : null
@@ -839,7 +941,9 @@
         participantId,
         sendWs,
         joinRequests,
+        playbackRequests,
         onDecision,
+        onPlaybackRequestDecision,
         onToggle,
         onOpenWindow
     }) {
@@ -869,9 +973,18 @@
             h("div", {className: "host-floating-status"},
                 h("span", null, room.participants.length + " 人"),
                 h("span", null, room.screenShareActive ? "共享中" : "未共享"),
-                joinRequests.length ? h("span", {className: "host-floating-alert-text"}, joinRequests.length + " 个申请") : null
+                joinRequests.length ? h("span", {className: "host-floating-alert-text"}, joinRequests.length + " 个申请") : null,
+                playbackRequests.length ? h("span", {className: "host-floating-alert-text"},
+                    playbackRequests.length === 1
+                        ? playbackRequestSummary(playbackRequests[0])
+                        : playbackRequests.length + " 个播放请求") : null
             ),
             h(JoinRequestsPanel, {requests: joinRequests, onDecision}),
+            h(PlaybackRequestsPanel, {
+                requests: playbackRequests,
+                onDecision: onPlaybackRequestDecision,
+                mode: room.source.mode
+            }),
             h(ChatPanel, {messages, participantId, sendWs}),
             h("section", {className: "sidebar-panel host-floating-members"},
                 h("div", {className: "sidebar-title"},
@@ -890,9 +1003,38 @@
         messages,
         participantId,
         sendWs,
+        screenMotionState,
+        requestFeedback,
+        onPlaybackRequest,
         fullscreen = false,
         onToggle
     }) {
+        const [requestNotice, setRequestNotice] = useState("");
+
+        useEffect(() => {
+            if (requestFeedback && requestFeedback.text) {
+                setRequestNotice(requestFeedback.text);
+            }
+        }, [requestFeedback && requestFeedback.receivedAt]);
+
+        function requestPlayback(action) {
+            onPlaybackRequest(action);
+            setRequestNotice("已向房主发送" + playbackActionLabel(action) + "请求。");
+            window.setTimeout(() => setRequestNotice(""), 2600);
+        }
+
+        const screenShareMode = room.source.mode === "SCREEN_SHARE";
+        const screenMoving = screenMotionState === "moving";
+        const toggleAction = screenShareMode
+            ? (screenMoving ? "pause" : "play")
+            : (room.playback && room.playback.playing ? "pause" : "play");
+        const toggleLabel = toggleAction === "pause" ? "请求暂停" : "请求播放";
+        const motionLabel = screenShareMode
+            ? (screenMotionState === "moving"
+                ? "画面有变化"
+                : screenMotionState === "still" ? "画面静止" : "正在识别画面")
+            : (room.playback && room.playback.playing ? "当前同步播放中" : "当前同步已暂停");
+
         if (collapsed) {
             return h("button", {
                 type: "button",
@@ -920,6 +1062,30 @@
                 h("span", null, room.screenShareActive ? "共享中" : "未共享"),
                 messages.length ? h("span", null, messages.length + " 条消息") : null
             ),
+            h("section", {className: "guest-request-panel"},
+                h("div", {className: "guest-request-title"},
+                    h("strong", null, "操作申请"),
+                    h("span", null, motionLabel)
+                ),
+                h("div", {className: "guest-request-actions"},
+                    h("button", {
+                        type: "button",
+                        className: "success",
+                        onClick: () => requestPlayback(toggleAction)
+                    }, toggleLabel),
+                    h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: () => requestPlayback("danmaku-on")
+                    }, "请求开弹幕"),
+                    h("button", {
+                        type: "button",
+                        className: "secondary",
+                        onClick: () => requestPlayback("danmaku-off")
+                    }, "请求关弹幕")
+                ),
+                requestNotice ? h("div", {className: "guest-request-notice"}, requestNotice) : null
+            ),
             h(ChatPanel, {messages, participantId, sendWs})
         );
     }
@@ -932,6 +1098,7 @@
         const [toast, setToast] = useState("");
         const [chatMessages, setChatMessages] = useState([]);
         const [joinRequests, setJoinRequests] = useState([]);
+        const [playbackRequests, setPlaybackRequests] = useState([]);
         const [compact, setCompact] = useState(false);
         const [compactSeenSignalCount, setCompactSeenSignalCount] = useState(0);
         const wsRef = useRef(null);
@@ -965,6 +1132,13 @@
                 const message = JSON.parse(event.data);
                 if (message.type === "snapshot" || message.type === "presence" || message.type === "screen-share") {
                     setRoom(message.room);
+                } else if (message.type === "playback-request") {
+                    setPlaybackRequests(requests => [
+                        ...requests.filter(request => request.id !== message.id).slice(-19),
+                        {...message, receivedAt: Date.now()}
+                    ]);
+                } else if (message.type === "playback-request-decision") {
+                    setPlaybackRequests(requests => requests.filter(request => request.id !== message.requestId));
                 } else if (message.type === "chat") {
                     setChatMessages(messages => [...messages.slice(-99), message]);
                 } else if (message.type === "room-closed") {
@@ -992,7 +1166,7 @@
         }, [room, participantId]);
 
         const isOwner = Boolean(participant && participant.owner);
-        const controlSignalCount = chatMessages.length + joinRequests.length;
+        const controlSignalCount = chatMessages.length + joinRequests.length + playbackRequests.length;
         const hasCompactAlert = floating && compact && controlSignalCount > compactSeenSignalCount;
 
         useEffect(() => {
@@ -1051,6 +1225,18 @@
             } catch (ex) {
                 setToast(ex.message);
             }
+        }
+
+        function decidePlaybackRequest(request, approved) {
+            sendWs({
+                type: "playback-request-decision",
+                requestId: request.id,
+                requesterId: request.requesterId,
+                action: request.action,
+                positionSeconds: request.positionSeconds,
+                approved
+            });
+            setPlaybackRequests(requests => requests.filter(item => item.id !== request.id));
         }
 
         function focusMainRoom() {
@@ -1157,6 +1343,7 @@
                 h(SourceSwitcher, {room, participantId, setRoom, sendWs})
             ),
             h(JoinRequestsPanel, {requests: joinRequests, onDecision: decideJoinRequest}),
+            h(PlaybackRequestsPanel, {requests: playbackRequests, onDecision: decidePlaybackRequest, mode: room.source.mode}),
             h(ChatPanel, {messages: chatMessages, participantId, sendWs}),
             h("section", {className: "sidebar-panel"},
                 h("div", {className: "sidebar-title"},
@@ -1186,6 +1373,32 @@
                     h("div", {className: "button-row"},
                         h("button", {className: "success", onClick: () => onDecision(request.id, true)}, "同意"),
                         h("button", {className: "secondary", onClick: () => onDecision(request.id, false)}, "拒绝")
+                    )
+                ))
+            )
+        );
+    }
+
+    function PlaybackRequestsPanel({requests, onDecision, mode}) {
+        if (!requests.length) {
+            return null;
+        }
+        return h("section", {className: "sidebar-panel full-row-panel playback-requests-panel"},
+            h("div", {className: "sidebar-title"},
+                h("strong", null, "房客操作请求"),
+                h("span", null, mode === "SCREEN_SHARE"
+                    ? requests.length + " 个请求，需在原页面手动处理"
+                    : requests.length + " 个房客请求等待处理")
+            ),
+            h("div", {className: "playback-request-list"},
+                requests.map(request => h("div", {className: "playback-request-item", key: request.id},
+                    h("div", null,
+                        h("strong", null, request.requesterName || "房客"),
+                        h("span", null, playbackRequestSummary(request))
+                    ),
+                    h("div", {className: "button-row"},
+                        h("button", {className: "success", onClick: () => onDecision(request, true)}, "同意"),
+                        h("button", {className: "secondary", onClick: () => onDecision(request, false)}, "拒绝")
                     )
                 ))
             )
@@ -1282,6 +1495,7 @@
         const lastStateSentRef = useRef(0);
         const pendingStateRef = useRef(null);
         const [playPrompt, setPlayPrompt] = useState("");
+        const [requestNotice, setRequestNotice] = useState("");
 
         const applyPlaybackState = useCallback((state, showPrompt = true) => {
             const video = videoRef.current;
@@ -1381,12 +1595,25 @@
             if (!video || applyingRemoteRef.current) {
                 return;
             }
+            const positionSeconds = Number(video.currentTime || 0);
+            if (isOwner) {
+                sendWs({
+                    type: "playback",
+                    action,
+                    positionSeconds
+                });
+                return;
+            }
+
             sendWs({
-                type: "playback",
+                type: "playback-request",
                 action,
-                positionSeconds: Number(video.currentTime || 0)
+                positionSeconds
             });
-        }, [sendWs]);
+            setRequestNotice("已向房主发送" + playbackActionLabel(action) + "请求。");
+            window.setTimeout(() => setRequestNotice(""), 2600);
+            applyPlaybackState(room.playback, false);
+        }, [sendWs, isOwner, room.playback, applyPlaybackState]);
 
         function handleTimeUpdate() {
             if (!isOwner || applyingRemoteRef.current) {
@@ -1415,7 +1642,8 @@
                 type: "button",
                 className: "player-resume",
                 onClick: () => applyPlaybackState(pendingStateRef.current || room.playback, true)
-            }, PLAYER_TEXT.resumeSync) : null
+            }, PLAYER_TEXT.resumeSync) : null,
+            requestNotice ? h("div", {className: "player-request-toast"}, requestNotice) : null
         );
     }
 
@@ -1503,7 +1731,7 @@
         };
     }
 
-    function ScreenShare({room, participantId, isOwner, sendWs, signalEvents}) {
+    function ScreenShare({room, participantId, isOwner, sendWs, signalEvents, onMotionChange}) {
         const localVideoRef = useRef(null);
         const ownerPreviewVideoRef = useRef(null);
         const remoteVideoRef = useRef(null);
@@ -1520,6 +1748,10 @@
         const pendingCandidatesRef = useRef(new Map());
         const processedSignalIdsRef = useRef(new Set());
         const remoteFrameStatsRef = useRef({frames: -1, unchangedTicks: 0});
+        const remoteMotionCanvasRef = useRef(null);
+        const remoteMotionSampleRef = useRef(null);
+        const remoteMotionStateRef = useRef("unknown");
+        const remoteStillTicksRef = useRef(0);
         const sourceWindowRef = useRef(null);
         const cropRef = useRef(null);
         const [crop, setCrop] = useState(null);
@@ -1599,6 +1831,16 @@
                 playPromise.catch(() => setRemotePlayPrompt(SHARE_TEXT.remotePlayBlocked));
             }
         }, [remoteMuted]);
+
+        const reportRemoteMotion = useCallback((nextState) => {
+            if (remoteMotionStateRef.current === nextState) {
+                return;
+            }
+            remoteMotionStateRef.current = nextState;
+            if (onMotionChange) {
+                onMotionChange(nextState);
+            }
+        }, [onMotionChange]);
 
         const attachRemoteTrack = useCallback((event) => {
             let stream = event.streams && event.streams[0] ? event.streams[0] : null;
@@ -1820,13 +2062,22 @@
 
         useEffect(() => {
             if (isOwner || !room.screenShareActive || !remoteStreamReady) {
+                if (!isOwner) {
+                    remoteMotionSampleRef.current = null;
+                    remoteStillTicksRef.current = 0;
+                    reportRemoteMotion("unknown");
+                }
                 return undefined;
             }
 
             remoteFrameStatsRef.current = {frames: -1, unchangedTicks: 0};
+            remoteMotionSampleRef.current = null;
+            remoteStillTicksRef.current = 0;
+            reportRemoteMotion("unknown");
             const timer = window.setInterval(() => {
                 const video = remoteVideoRef.current;
                 if (!video || !video.srcObject) {
+                    reportRemoteMotion("unknown");
                     requestOfferFromOwner();
                     return;
                 }
@@ -1852,10 +2103,55 @@
                     stats.unchangedTicks = 0;
                     requestOfferFromOwner();
                 }
+
+                if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+                    reportRemoteMotion("unknown");
+                    return;
+                }
+                try {
+                    const canvas = remoteMotionCanvasRef.current || document.createElement("canvas");
+                    remoteMotionCanvasRef.current = canvas;
+                    canvas.width = 48;
+                    canvas.height = 27;
+                    const context = canvas.getContext("2d", {willReadFrequently: true});
+                    if (!context) {
+                        reportRemoteMotion("unknown");
+                        return;
+                    }
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const nextSample = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                    const previousSample = remoteMotionSampleRef.current;
+                    remoteMotionSampleRef.current = new Uint8ClampedArray(nextSample);
+                    if (!previousSample) {
+                        reportRemoteMotion("unknown");
+                        return;
+                    }
+
+                    let totalDiff = 0;
+                    let sampleCount = 0;
+                    for (let index = 0; index < nextSample.length; index += 16) {
+                        totalDiff += Math.abs(nextSample[index] - previousSample[index]);
+                        totalDiff += Math.abs(nextSample[index + 1] - previousSample[index + 1]);
+                        totalDiff += Math.abs(nextSample[index + 2] - previousSample[index + 2]);
+                        sampleCount += 3;
+                    }
+                    const averageDiff = sampleCount ? totalDiff / sampleCount : 0;
+                    if (averageDiff > 3.5) {
+                        remoteStillTicksRef.current = 0;
+                        reportRemoteMotion("moving");
+                    } else {
+                        remoteStillTicksRef.current += 1;
+                        if (remoteStillTicksRef.current >= 2) {
+                            reportRemoteMotion("still");
+                        }
+                    }
+                } catch (ignored) {
+                    reportRemoteMotion("unknown");
+                }
             }, 1500);
 
             return () => window.clearInterval(timer);
-        }, [isOwner, room.screenShareActive, remoteStreamReady, remoteMuted, playRemoteVideo, requestOfferFromOwner]);
+        }, [isOwner, room.screenShareActive, remoteStreamReady, remoteMuted, playRemoteVideo, requestOfferFromOwner, reportRemoteMotion]);
 
         function openSourceDetailPage() {
             setSourcePreviewOpen(true);
