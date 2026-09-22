@@ -1,3 +1,4 @@
+// 加入申请状态响应视图。
 package com.coview.dto;
 
 import java.time.Instant;

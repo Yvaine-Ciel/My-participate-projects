@@ -1,3 +1,4 @@
+// REST API 统一异常响应处理。
 package com.coview.controller;
 
 import org.springframework.http.HttpStatus;
@@ -16,12 +17,14 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    // 将业务异常转换为统一 JSON 响应。
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         return ResponseEntity.status(status).body(errorBody(status, ex.getReason()));
     }
 
+    // 汇总参数校验错误并返回 400。
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
@@ -35,6 +38,7 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(errorBody(HttpStatus.BAD_REQUEST, message));
     }
 
+    // 组装前端可直接展示的错误体。
     private Map<String, Object> errorBody(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
@@ -44,6 +48,7 @@ public class ApiExceptionHandler {
         return body;
     }
 
+    // 将常见 HTTP 状态转换为中文提示。
     private String statusText(HttpStatus status) {
         return switch (status) {
             case BAD_REQUEST -> "请求参数不正确";

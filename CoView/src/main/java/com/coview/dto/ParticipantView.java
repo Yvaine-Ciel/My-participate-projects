@@ -1,3 +1,4 @@
+// 房间成员响应视图。
 package com.coview.dto;
 
 import java.time.Instant;

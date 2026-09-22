@@ -1,3 +1,4 @@
+// 待房主确认的加入申请模型。
 package com.coview.model;
 
 import java.time.Instant;
@@ -17,6 +18,7 @@ public class PendingJoinRequest {
     private volatile String participantId;
     private volatile Instant decidedAt;
 
+    // 创建待房主确认的加入申请。
     public PendingJoinRequest(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
@@ -48,12 +50,14 @@ public class PendingJoinRequest {
         return decidedAt;
     }
 
+    // 标记申请通过并绑定正式成员 ID。
     public void approve(String approvedParticipantId) {
         this.status = Status.APPROVED;
         this.participantId = approvedParticipantId;
         this.decidedAt = Instant.now();
     }
 
+    // 标记申请被拒绝。
     public void reject() {
         this.status = Status.REJECTED;
         this.decidedAt = Instant.now();

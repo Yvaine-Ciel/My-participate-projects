@@ -1,3 +1,4 @@
+// 房主处理加入申请的请求参数。
 package com.coview.dto;
 
 import jakarta.validation.constraints.NotBlank;

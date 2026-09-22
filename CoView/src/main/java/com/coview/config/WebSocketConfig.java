@@ -1,3 +1,4 @@
+// 房间 WebSocket 处理器注册配置。
 package com.coview.config;
 
 import com.coview.websocket.RoomWebSocketHandler;
@@ -16,6 +17,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         this.roomWebSocketHandler = roomWebSocketHandler;
     }
 
+    // 注册房间 WebSocket 入口。
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(roomWebSocketHandler, "/ws/rooms/*")

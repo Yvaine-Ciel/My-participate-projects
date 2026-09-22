@@ -1,22 +1,27 @@
+// 前端房间创建、加入、播放同步、聊天和屏幕共享交互。
 (function () {
     const {useCallback, useEffect, useMemo, useRef, useState} = React;
     const h = React.createElement;
 
     const NAME_KEY = "coview:displayName";
 
+    // 为指定房间生成本地成员身份存储键。
     function participantKey(roomId) {
         return "coview:participant:" + roomId;
     }
 
+    // 从地址 hash 中解析当前房间号。
     function currentRoomFromHash() {
         const match = window.location.hash.match(/^#\/(?:room|control)\/([A-Za-z0-9-]+)$/);
         return match ? decodeURIComponent(match[1]) : null;
     }
 
+    // 判断当前地址是否是房主管理台。
     function isControlRoute() {
         return /^#\/control\/[A-Za-z0-9-]+$/.test(window.location.hash);
     }
 
+    // 统一房间号输入格式并补齐 LJX- 前缀。
     function normalizeRoomInput(value) {
         const clean = (value || "").trim();
         if (!clean) {
@@ -25,14 +30,17 @@
         return clean.toUpperCase().startsWith("LJX-") ? clean : "LJX-" + clean;
     }
 
+    // 切换到房间主页面。
     function navigateToRoom(roomId) {
         window.location.hash = "#/room/" + encodeURIComponent(roomId);
     }
 
+    // 构造房主管理台页面地址。
     function controlUrl(roomId) {
         return window.location.origin + window.location.pathname + "#/control/" + encodeURIComponent(roomId);
     }
 
+    // 优先打开置顶管理台，不支持时退回弹窗。
     async function openHostControlSurface(roomId) {
         if (window.documentPictureInPicture && window.documentPictureInPicture.requestWindow) {
             const existingWindow = window.documentPictureInPicture.window;
@@ -71,6 +79,7 @@
         return "blocked";
     }
 
+    // 按折叠状态调整管理台窗口大小。
     function resizeControlSurface(targetWindow, collapsed) {
         const size = collapsed ? {width: 96, height: 72} : {width: 430, height: 760};
         try {
@@ -81,6 +90,7 @@
         }
     }
 
+    // 复制主页面样式到置顶管理台窗口。
     function copyDocumentStyles(targetDocument) {
         targetDocument.documentElement.lang = document.documentElement.lang || "zh-CN";
         targetDocument.body.className = "control-pip-body";
@@ -107,6 +117,7 @@
         targetDocument.head.appendChild(pipStyle);
     }
 
+    // 封装 REST 请求和后端错误解析。
     async function api(path, options) {
         const response = await fetch(path, {
             headers: {"Content-Type": "application/json"},
@@ -120,16 +131,19 @@
         return data;
     }
 
+    // 构造房间 WebSocket 连接地址。
     function wsUrl(roomId, participantId) {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         return protocol + "//" + window.location.host + "/ws/rooms/" + encodeURIComponent(roomId)
             + "?participantId=" + encodeURIComponent(participantId);
     }
 
+    // 将播放模式转换为界面文案。
     function modeLabel(mode) {
         return mode === "SYNC" ? "同步播放" : "屏幕共享";
     }
 
+    // 判断地址是否是 HLS 播放列表。
     function isHls(url) {
         return /\.m3u8($|\?)/i.test(url || "");
     }
@@ -170,6 +184,7 @@
         autoplayBlocked: "\u6d4f\u89c8\u5668\u9700\u8981\u4f60\u70b9\u51fb\u4e00\u6b21\u624d\u80fd\u7ee7\u7eed\u540c\u6b65\u64ad\u653e\u3002"
     });
 
+    // 将播放动作转换为中文名称。
     function playbackActionLabel(action) {
         if (action === "play") {
             return "播放";
@@ -192,6 +207,7 @@
         return "调整播放";
     }
 
+    // 生成房客播放请求的摘要文案。
     function playbackRequestSummary(request) {
         const label = "请求" + playbackActionLabel(request.action);
         if (request.action === "seek") {
@@ -200,6 +216,7 @@
         return label;
     }
 
+    // 将秒数格式化为 mm:ss。
     function formatPlaybackPosition(seconds) {
         const safeSeconds = Math.max(0, Math.floor(Number(seconds || 0)));
         const minutes = Math.floor(safeSeconds / 60);
@@ -207,6 +224,7 @@
         return minutes + ":" + rest;
     }
 
+    // 渲染应用外壳和顶部房间状态栏。
     function Shell({children, room, wsStatus, onLeave}) {
         return h("div", {className: "app-shell"},
             h("header", {className: "topbar"},
@@ -226,6 +244,7 @@
         );
     }
 
+    // 根据当前路由切换首页、房间页或管理台。
     function App() {
         const [roomId, setRoomId] = useState(currentRoomFromHash());
         const [controlMode, setControlMode] = useState(isControlRoute());
@@ -247,6 +266,7 @@
             : h(RoomPage, {key: "room:" + roomId, roomId});
     }
 
+    // 渲染身份选择入口。
     function EntryPage() {
         const [role, setRole] = useState("");
 
@@ -278,6 +298,7 @@
         );
     }
 
+    // 渲染房主创建房间表单。
     function HostSetup({onBack}) {
         const [displayName, setDisplayName] = useState(() => sessionStorage.getItem(NAME_KEY) || "");
         const [sourceUrl, setSourceUrl] = useState("");
@@ -288,6 +309,7 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState("");
 
+        // 向后端获取新的候选房间号。
         const refreshRoomId = useCallback(async () => {
             setLoadingRoomId(true);
             setError("");
@@ -305,6 +327,7 @@
             refreshRoomId();
         }, [refreshRoomId]);
 
+        // 提交房间创建请求并保存房主身份。
         async function createRoom(event) {
             event.preventDefault();
             setError("");
@@ -399,6 +422,7 @@
         );
     }
 
+    // 渲染房客加入房间表单。
     function GuestSetup({onBack}) {
         const [displayName, setDisplayName] = useState(() => sessionStorage.getItem(NAME_KEY) || "");
         const [roomInput, setRoomInput] = useState("");
@@ -434,6 +458,7 @@
             return () => window.clearInterval(timer);
         }, [pendingRequest, displayName]);
 
+        // 校验基础信息并弹出房间确认。
         function requestConfirm(event) {
             event.preventDefault();
             setError("");
@@ -448,6 +473,7 @@
             setConfirming(true);
         }
 
+        // 提交加入申请并进入等待确认状态。
         async function requestJoinRoom() {
             setError("");
             setLoading(true);
@@ -509,6 +535,7 @@
         );
     }
 
+    // 显示等待房主处理的提示弹窗。
     function WaitingJoinPanel({request, onCancel}) {
         return h("div", {className: "modal-backdrop"},
             h("section", {className: "modal-panel"},
@@ -523,6 +550,7 @@
         );
     }
 
+    // 显示房间号和密码二次确认弹窗。
     function ConfirmJoinDialog({roomId, password, setPassword, loading, error, onCancel, onConfirm}) {
         return h("div", {className: "modal-backdrop"},
             h("section", {className: "modal-panel"},
@@ -548,6 +576,7 @@
         );
     }
 
+    // 渲染房间主页面并协调实时状态。
     function RoomPage({roomId}) {
         const [room, setRoom] = useState(null);
         const [participantId, setParticipantId] = useState(() => sessionStorage.getItem(participantKey(roomId)) || "");
@@ -641,6 +670,7 @@
             };
         }, [wsRoomId, participantId]);
 
+        // 通过当前 WebSocket 连接发送消息。
         const sendWs = useCallback(payload => {
             const socket = wsRef.current;
             if (socket && socket.readyState === WebSocket.OPEN) {
@@ -704,6 +734,7 @@
                 return undefined;
             }
             let stopped = false;
+            // 轮询房主待处理的加入申请。
             async function loadJoinRequests() {
                 try {
                     const result = await api("/api/rooms/" + encodeURIComponent(room.id)
@@ -725,6 +756,7 @@
             };
         }, [room, participantId, isOwner]);
 
+        // 退出房间，房主退出时会关闭房间。
         function leaveRoom() {
             if (!room) {
                 window.location.hash = "";
@@ -743,6 +775,7 @@
             }, 80);
         }
 
+        // 房主同意或拒绝房客加入申请。
         async function decideJoinRequest(requestId, approved) {
             try {
                 const result = await api("/api/rooms/" + encodeURIComponent(room.id)
@@ -760,6 +793,7 @@
             }
         }
 
+        // 房主处理房客发来的播放操作请求。
         function decidePlaybackRequest(request, approved) {
             sendWs({
                 type: "playback-request-decision",
@@ -772,6 +806,7 @@
             setPlaybackRequests(requests => requests.filter(item => item.id !== request.id));
         }
 
+        // 房客向房主申请播放相关操作。
         function sendGuestPlaybackRequest(action) {
             if (!room || isOwner) {
                 return;
@@ -785,6 +820,7 @@
             });
         }
 
+        // 打开独立或置顶房主管理台。
         async function openHostControlWindow() {
             if (!room) {
                 return;
@@ -803,6 +839,7 @@
             }
         }
 
+        // 切换观影区域全屏显示。
         function toggleStageFullscreen() {
             const stage = watchStageRef.current;
             if (!stage || !stage.requestFullscreen) {
@@ -933,6 +970,7 @@
         );
     }
 
+    // 渲染房主在房间页内的浮动管理面板。
     function HostFloatingPanel({
         room,
         collapsed,
@@ -996,6 +1034,7 @@
         );
     }
 
+    // 渲染房客浮动交流与操作申请面板。
     function GuestFloatingPanel({
         room,
         collapsed,
@@ -1017,6 +1056,7 @@
             }
         }, [requestFeedback && requestFeedback.receivedAt]);
 
+        // 发送房客播放控制申请并显示反馈。
         function requestPlayback(action) {
             onPlaybackRequest(action);
             setRequestNotice("已向房主发送" + playbackActionLabel(action) + "请求。");
@@ -1090,6 +1130,7 @@
         );
     }
 
+    // 渲染独立或置顶的房主管理台。
     function HostControlWindow({roomId, floating = false, onCompactChange, onClose}) {
         const [participantId] = useState(() => sessionStorage.getItem(participantKey(roomId)) || "");
         const [room, setRoom] = useState(null);
@@ -1151,6 +1192,7 @@
             return () => socket.close();
         }, [participantId, room && room.id]);
 
+        // 通过管理台 WebSocket 发送消息。
         const sendWs = useCallback(payload => {
             const socket = wsRef.current;
             if (socket && socket.readyState === WebSocket.OPEN) {
@@ -1189,6 +1231,7 @@
                 return undefined;
             }
             let stopped = false;
+            // 管理台轮询待处理加入申请。
             async function loadJoinRequests() {
                 try {
                     const result = await api("/api/rooms/" + encodeURIComponent(room.id)
@@ -1210,6 +1253,7 @@
             };
         }, [room, participantId, isOwner]);
 
+        // 管理台处理加入申请。
         async function decideJoinRequest(requestId, approved) {
             try {
                 const result = await api("/api/rooms/" + encodeURIComponent(room.id)
@@ -1227,6 +1271,7 @@
             }
         }
 
+        // 管理台处理房客播放请求。
         function decidePlaybackRequest(request, approved) {
             sendWs({
                 type: "playback-request-decision",
@@ -1239,6 +1284,7 @@
             setPlaybackRequests(requests => requests.filter(item => item.id !== request.id));
         }
 
+        // 聚焦主房间窗口或回到主房间路由。
         function focusMainRoom() {
             if (floating) {
                 window.focus();
@@ -1252,11 +1298,13 @@
             }
         }
 
+        // 折叠置顶管理台并记录已读数量。
         function collapseControl() {
             setCompactSeenSignalCount(controlSignalCount);
             setCompact(true);
         }
 
+        // 展开置顶管理台。
         function expandControl() {
             setCompact(false);
         }
@@ -1355,6 +1403,7 @@
         );
     }
 
+    // 渲染待确认加入申请列表。
     function JoinRequestsPanel({requests, onDecision}) {
         if (!requests.length) {
             return null;
@@ -1379,6 +1428,7 @@
         );
     }
 
+    // 渲染房客播放操作请求列表。
     function PlaybackRequestsPanel({requests, onDecision, mode}) {
         if (!requests.length) {
             return null;
@@ -1405,6 +1455,7 @@
         );
     }
 
+    // 渲染通过房间链接直接进入时的加入表单。
     function DirectJoinPanel({roomId, onApproved}) {
         const [displayName, setDisplayName] = useState(() => sessionStorage.getItem(NAME_KEY) || "");
         const [password, setPassword] = useState("");
@@ -1437,6 +1488,7 @@
             return () => window.clearInterval(timer);
         }, [pendingRequest, displayName]);
 
+        // 提交直接加入申请。
         async function submit(event) {
             event.preventDefault();
             setError("");
@@ -1488,6 +1540,7 @@
         );
     }
 
+    // 渲染直链视频同步播放器。
     function DirectPlayer({room, participantId, isOwner, sendWs, playbackEvent}) {
         const videoRef = useRef(null);
         const hlsRef = useRef(null);
@@ -1497,6 +1550,7 @@
         const [playPrompt, setPlayPrompt] = useState("");
         const [requestNotice, setRequestNotice] = useState("");
 
+        // 将远端播放状态应用到本地 video。
         const applyPlaybackState = useCallback((state, showPrompt = true) => {
             const video = videoRef.current;
             if (!video || !state) {
@@ -1504,6 +1558,7 @@
             }
             pendingStateRef.current = state;
 
+            // 等媒体元数据可用后执行跳转与播放。
             function applyNow() {
                 applyingRemoteRef.current = true;
                 let position = Number(state.positionSeconds || 0);
@@ -1590,6 +1645,7 @@
             applyPlaybackState(playbackEvent.state, true);
         }, [playbackEvent, participantId, applyPlaybackState]);
 
+        // 发送播放状态；房客会转为申请。
         const sendPlayback = useCallback((action) => {
             const video = videoRef.current;
             if (!video || applyingRemoteRef.current) {
@@ -1615,6 +1671,7 @@
             applyPlaybackState(room.playback, false);
         }, [sendWs, isOwner, room.playback, applyPlaybackState]);
 
+        // 房主定期同步播放进度。
         function handleTimeUpdate() {
             if (!isOwner || applyingRemoteRef.current) {
                 return;
@@ -1655,6 +1712,7 @@
     const SHARE_VIDEO_BITRATE = 8_000_000;
     const SHARE_AUDIO_BITRATE = 160_000;
 
+    // 限制裁剪框在画面范围内。
     function clampCrop(crop) {
         if (!crop) {
             return null;
@@ -1667,6 +1725,7 @@
         return {x, y, width, height};
     }
 
+    // 根据拖拽起止点生成裁剪框。
     function cropFromPoints(start, end) {
         return clampCrop({
             x: Math.min(start.x, end.x),
@@ -1676,6 +1735,7 @@
         });
     }
 
+    // 计算裁剪后共享画面的输出尺寸。
     function sharedOutputSize(width, height) {
         const safeWidth = Math.max(2, width);
         const safeHeight = Math.max(2, height);
@@ -1686,6 +1746,7 @@
         };
     }
 
+    // 调整 WebRTC 发送端码率和帧率。
     async function tunePeerSender(sender, track) {
         if (!sender || !track || typeof sender.getParameters !== "function" || typeof sender.setParameters !== "function") {
             return;
@@ -1703,6 +1764,7 @@
         }
     }
 
+    // 等待视频首帧信息可用。
     function waitForVideoReady(video) {
         if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
             return Promise.resolve();
@@ -1714,6 +1776,7 @@
         });
     }
 
+    // 从视频中截取一帧作为裁剪预览。
     function captureVideoFrame(video) {
         const width = video.videoWidth || 1280;
         const height = video.videoHeight || 720;
@@ -1731,6 +1794,7 @@
         };
     }
 
+    // 渲染屏幕共享发送端和接收端。
     function ScreenShare({room, participantId, isOwner, sendWs, signalEvents, onMotionChange}) {
         const localVideoRef = useRef(null);
         const ownerPreviewVideoRef = useRef(null);
@@ -1779,6 +1843,7 @@
             setSourcePreviewOpen(false);
         }, [sourceUrl]);
 
+        // 计算截图在裁剪区域中的实际显示盒。
         const updateImageBox = useCallback(() => {
             const stage = cropStageRef.current;
             if (!stage || !screenshot) {
@@ -1813,10 +1878,12 @@
             return () => window.removeEventListener("resize", updateImageBox);
         }, [screenshot, updateImageBox]);
 
+        // 通过房间 WebSocket 转发 WebRTC 信令。
         const sendSignal = useCallback((targetId, payload) => {
             sendWs({type: "webrtc-signal", targetId, payload});
         }, [sendWs]);
 
+        // 尝试播放远端共享流。
         const playRemoteVideo = useCallback((withAudio = false) => {
             const video = remoteVideoRef.current;
             if (!video || !video.srcObject) {
@@ -1832,6 +1899,7 @@
             }
         }, [remoteMuted]);
 
+        // 上报接收端画面是否仍在变化。
         const reportRemoteMotion = useCallback((nextState) => {
             if (remoteMotionStateRef.current === nextState) {
                 return;
@@ -1842,6 +1910,7 @@
             }
         }, [onMotionChange]);
 
+        // 将远端轨道挂到接收端 video。
         const attachRemoteTrack = useCallback((event) => {
             let stream = event.streams && event.streams[0] ? event.streams[0] : null;
             if (!stream) {
@@ -1860,6 +1929,7 @@
             window.setTimeout(() => playRemoteVideo(false), 0);
         }, [playRemoteVideo, remoteMuted]);
 
+        // 关闭指定成员的点对点连接。
         const closePeer = useCallback((peerId) => {
             const peer = peersRef.current.get(peerId);
             if (peer) {
@@ -1869,6 +1939,7 @@
             pendingCandidatesRef.current.delete(peerId);
         }, []);
 
+        // 创建或复用与指定成员的点对点连接。
         const createPeer = useCallback((peerId) => {
             if (peersRef.current.has(peerId)) {
                 return peersRef.current.get(peerId);
@@ -1902,18 +1973,21 @@
             return peer;
         }, [attachRemoteTrack, closePeer, playRemoteVideo, sendSignal]);
 
+        // 关闭所有点对点连接并清空候选队列。
         const closeAllPeers = useCallback(() => {
             peersRef.current.forEach(peer => peer.close());
             peersRef.current.clear();
             pendingCandidatesRef.current.clear();
         }, []);
 
+        // 暂存等待远端描述就绪的 ICE 候选。
         function queueIceCandidate(peerId, candidate) {
             const candidates = pendingCandidatesRef.current.get(peerId) || [];
             candidates.push(candidate);
             pendingCandidatesRef.current.set(peerId, candidates);
         }
 
+        // 在远端描述就绪后补加 ICE 候选。
         async function flushQueuedIceCandidates(peerId, peer) {
             if (!peer.remoteDescription) {
                 return;
@@ -1928,6 +2002,7 @@
             }
         }
 
+        // 立即添加或排队等待 ICE 候选。
         async function addIceCandidateWhenReady(peerId, peer, candidate) {
             if (!peer.remoteDescription) {
                 queueIceCandidate(peerId, candidate);
@@ -1968,6 +2043,7 @@
             closeAllPeers();
         }, [isOwner, room.screenShareActive, closeAllPeers]);
 
+        // 停止共享并释放采集、画布和连接资源。
         const stopShare = useCallback((notify = true) => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
@@ -2011,6 +2087,7 @@
             }
         }, [closeAllPeers, sendWs]);
 
+        // 给指定房客创建并发送 WebRTC offer。
         const offerTo = useCallback(async (targetId, options = {}) => {
             if (!localStreamRef.current) {
                 return;
@@ -2033,6 +2110,7 @@
             sendSignal(targetId, {kind: "offer", sdp: peer.localDescription});
         }, [closePeer, createPeer, sendSignal]);
 
+        // 房客主动请求房主重新发送 offer。
         const requestOfferFromOwner = useCallback(() => {
             if (isOwner || !room.screenShareActive || !room.ownerId || room.ownerId === participantId) {
                 return;
@@ -2153,6 +2231,7 @@
             return () => window.clearInterval(timer);
         }, [isOwner, room.screenShareActive, remoteStreamReady, remoteMuted, playRemoteVideo, requestOfferFromOwner, reportRemoteMotion]);
 
+        // 打开或聚焦原视频详情页。
         function openSourceDetailPage() {
             setSourcePreviewOpen(true);
             if (!sourceUrl) {
@@ -2172,12 +2251,14 @@
             }
         }
 
+        // 将原始屏幕流裁剪到画布并生成共享流。
         function startCropDrawing(rawStream) {
             const video = localVideoRef.current;
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
             canvasRef.current = canvas;
 
+            // 将当前裁剪区域绘制到共享画布。
             function drawFrame() {
                 if (video && video.readyState >= 2 && context) {
                     const sourceWidth = video.videoWidth || 1280;
@@ -2203,6 +2284,7 @@
                 }
             }
 
+            // 使用浏览器可用的最高效方式持续绘制。
             function drawLoop() {
                 if (video && typeof video.requestVideoFrameCallback === "function") {
                     videoFrameCallbackRef.current = video.requestVideoFrameCallback(() => {
@@ -2230,6 +2312,7 @@
             frameTimerRef.current = window.setInterval(drawFrame, Math.round(1000 / SHARE_FRAME_RATE));
         }
 
+        // 请求屏幕采集并准备裁剪预览。
         async function captureForCrop() {
             setError("");
             try {
@@ -2279,6 +2362,7 @@
             }
         }
 
+        // 确认裁剪并开始向房客共享。
         async function startShare() {
             setError("");
             if (!localStreamRef.current || !rawStreamRef.current) {
@@ -2298,6 +2382,7 @@
                 .map(participant => offerTo(participant.id)));
         }
 
+        // 将鼠标位置转换为截图百分比坐标。
         function pointFromEvent(event) {
             const stage = cropStageRef.current;
             if (!stage || !imageBox.width || !imageBox.height) {
@@ -2312,6 +2397,7 @@
             };
         }
 
+        // 从空白区域开始拖拽创建裁剪框。
         function startDrawCrop(event) {
             if (!screenshot || (event.button !== undefined && event.button !== 0)) {
                 return;
@@ -2323,6 +2409,7 @@
             }
             setCrop(clampCrop({x: startPoint.x, y: startPoint.y, width: 2, height: 2}));
 
+            // 拖动时持续更新新裁剪框。
             function move(moveEvent) {
                 const nextPoint = pointFromEvent(moveEvent);
                 if (nextPoint) {
@@ -2330,6 +2417,7 @@
                 }
             }
 
+            // 松开指针后移除临时监听。
             function up() {
                 window.removeEventListener("pointermove", move);
                 window.removeEventListener("pointerup", up);
@@ -2339,6 +2427,7 @@
             window.addEventListener("pointerup", up);
         }
 
+        // 拖动裁剪框或控制点调整选区。
         function startCropPointer(event, mode) {
             if (!screenshot || !cropRef.current) {
                 return;
@@ -2351,6 +2440,7 @@
             }
             const startCrop = cropRef.current;
 
+            // 根据控制点方向移动或缩放裁剪框。
             function move(moveEvent) {
                 const nextPoint = pointFromEvent(moveEvent);
                 if (!nextPoint) {
@@ -2380,6 +2470,7 @@
                 setCrop(clampCrop(next));
             }
 
+            // 调整结束后移除临时监听。
             function up() {
                 window.removeEventListener("pointermove", move);
                 window.removeEventListener("pointerup", up);
@@ -2389,6 +2480,7 @@
             window.addEventListener("pointerup", up);
         }
 
+        // 将裁剪框恢复为全画面。
         function resetCrop() {
             setCrop({...FULL_CROP});
         }
@@ -2407,6 +2499,7 @@
                 return;
             }
 
+            // 按信令类型完成 offer/answer/candidate 流程。
             async function handleSignal(signalEvent) {
                 if (!signalEvent || signalEvent.targetId !== participantId) {
                     return;
@@ -2565,6 +2658,7 @@
         );
     }
 
+    // 渲染房间聊天面板。
     function ChatPanel({messages, participantId, sendWs}) {
         const [collapsed, setCollapsed] = useState(false);
         const [text, setText] = useState("");
@@ -2576,6 +2670,7 @@
             }
         }, [messages, collapsed]);
 
+        // 发送聊天消息。
         function submit(event) {
             event.preventDefault();
             const clean = text.trim();
@@ -2619,6 +2714,7 @@
         );
     }
 
+    // 渲染房主更换视频来源表单。
     function SourceSwitcher({room, participantId, setRoom, sendWs}) {
         const [sourceUrl, setSourceUrl] = useState(room.source.normalizedUrl);
         const [loading, setLoading] = useState(false);
@@ -2628,6 +2724,7 @@
             setSourceUrl(room.source.normalizedUrl);
         }, [room.source.normalizedUrl]);
 
+        // 提交新来源并通知房间刷新。
         async function submit(event) {
             event.preventDefault();
             setError("");
@@ -2659,6 +2756,7 @@
         );
     }
 
+    // 渲染房间成员列表。
     function ParticipantList({room}) {
         return h("div", {className: "member-list"},
             room.participants.map(participant =>
@@ -2670,6 +2768,7 @@
         );
     }
 
+    // 复制文本，失败时降级为手动复制。
     function copyText(text, successMessage) {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text)

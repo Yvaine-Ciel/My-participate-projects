@@ -1,3 +1,4 @@
+// 房间成员领域模型。
 package com.coview.model;
 
 import java.time.Instant;
@@ -10,6 +11,7 @@ public class Participant {
     private final Instant joinedAt;
     private volatile Instant lastSeenAt;
 
+    // 创建房间成员并记录加入时间。
     public Participant(String id, String displayName, boolean owner) {
         this.id = id;
         this.displayName = displayName;
@@ -38,6 +40,7 @@ public class Participant {
         return lastSeenAt;
     }
 
+    // 刷新成员最近在线时间。
     public void touch() {
         this.lastSeenAt = Instant.now();
     }

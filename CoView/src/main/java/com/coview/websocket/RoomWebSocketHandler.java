@@ -1,3 +1,4 @@
+// 房间 WebSocket 消息、聊天和 WebRTC 信令处理。
 package com.coview.websocket;
 
 import com.coview.dto.RoomView;
@@ -43,6 +44,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         this.objectMapper = objectMapper;
     }
 
+    // 建立连接时校验房间和成员身份。
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         URI uri = session.getUri();
@@ -71,6 +73,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         broadcast(roomId, roomMessage("presence", roomService.getRoomView(roomId)), null);
     }
 
+    // 分发前端发送的房间消息。
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String roomId = attr(session, ROOM_ID_ATTR);
@@ -102,6 +105,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    // 连接关闭时清理会话并广播在线状态。
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         String roomId = attr(session, ROOM_ID_ATTR);
@@ -123,6 +127,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
                 .ifPresent(room -> broadcast(roomId, roomMessage("presence", roomService.toView(room)), null));
     }
 
+    // 处理房主播放、暂停和进度同步。
     private void handlePlayback(String roomId, String participantId, JsonNode root) {
         String action = normalizePlaybackAction(text(root, "action").orElse(""), true);
         double position = Math.max(0.0, root.path("positionSeconds").asDouble(0.0));
@@ -136,6 +141,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         broadcast(roomId, payload, null);
     }
 
+    // 接收房客的播放操作申请并转给房主。
     private void handlePlaybackRequest(String roomId, String participantId, JsonNode root) {
         Room room = roomService.requireRoom(roomId);
         Participant participant = roomService.requireParticipant(roomId, participantId);
@@ -158,6 +164,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         sendToParticipant(roomId, room.getOwnerId(), payload);
     }
 
+    // 房主处理房客播放申请并通知相关成员。
     private void handlePlaybackRequestDecision(String roomId, String participantId, JsonNode root) {
         Room room = roomService.requireRoom(roomId);
         if (!room.getOwnerId().equals(participantId)) {
@@ -199,6 +206,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    // 转发点对点 WebRTC 信令。
     private void handleWebRtcSignal(String roomId, String participantId, JsonNode root) {
         String targetId = text(root, "targetId").orElse("");
         JsonNode payloadNode = root.path("payload");
@@ -214,12 +222,14 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         sendToParticipant(roomId, targetId, payload);
     }
 
+    // 更新并广播屏幕共享状态。
     private void handleScreenShare(String roomId, String participantId, JsonNode root) {
         boolean active = root.path("active").asBoolean(false);
         RoomView view = roomService.setScreenShareActive(roomId, participantId, active);
         broadcast(roomId, roomMessage("screen-share", view), null);
     }
 
+    // 校验聊天内容并广播到房间。
     private void handleChat(String roomId, String participantId, JsonNode root) {
         Participant participant = roomService.requireParticipant(roomId, participantId);
         String text = text(root, "text").orElse("").trim();
@@ -241,6 +251,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         broadcast(roomId, payload, null);
     }
 
+    // 处理成员离开，房主离开时关闭房间。
     private void handleLeave(String roomId, String participantId) {
         boolean roomClosed = roomService.leaveRoom(roomId, participantId);
         if (roomClosed) {
@@ -260,6 +271,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
                 .ifPresent(room -> broadcast(roomId, roomMessage("presence", roomService.toView(room)), null));
     }
 
+    // 向房间内成员广播消息。
     private void broadcast(String roomId, Map<String, Object> payload, String exceptParticipantId) {
         ConcurrentMap<String, Set<WebSocketSession>> participants = sessionsByRoom.get(roomId);
         if (participants == null) {
@@ -275,6 +287,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         });
     }
 
+    // 向指定成员的所有连接发送消息。
     private void sendToParticipant(String roomId, String participantId, Map<String, Object> payload) {
         ConcurrentMap<String, Set<WebSocketSession>> participants = sessionsByRoom.get(roomId);
         if (participants == null) {
@@ -288,6 +301,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         sockets.forEach(session -> send(session, payload));
     }
 
+    // 序列化并发送单条 WebSocket 消息。
     private void send(WebSocketSession session, Map<String, Object> payload) {
         if (!session.isOpen()) {
             return;
@@ -301,6 +315,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    // 给当前连接返回错误提示。
     private void sendError(WebSocketSession session, String message) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("type", "error");
@@ -308,10 +323,12 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         send(session, payload);
     }
 
+    // 构建房间快照消息。
     private Map<String, Object> snapshotMessage(RoomView view) {
         return roomMessage("snapshot", view);
     }
 
+    // 构建带房间视图的消息。
     private Map<String, Object> roomMessage(String type, RoomView view) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("type", type);
@@ -319,12 +336,14 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         return payload;
     }
 
+    // 构建仅包含类型的简单消息。
     private Map<String, Object> simpleMessage(String type) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("type", type);
         return payload;
     }
 
+    // 从 WebSocket 路径中取出房间号。
     private String extractRoomId(URI uri) {
         if (uri == null) {
             return null;
@@ -337,6 +356,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         return path.substring(prefix.length()).trim();
     }
 
+    // 从查询参数中取出成员 ID。
     private String extractParticipantId(URI uri) {
         if (uri == null) {
             return null;
@@ -344,11 +364,13 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         return UriComponentsBuilder.fromUri(uri).build().getQueryParams().getFirst("participantId");
     }
 
+    // 读取连接属性中的字符串值。
     private String attr(WebSocketSession session, String key) {
         Object value = session.getAttributes().get(key);
         return value == null ? null : value.toString();
     }
 
+    // 安全读取 JSON 文本字段。
     private Optional<String> text(JsonNode node, String field) {
         JsonNode value = node.path(field);
         if (value.isMissingNode() || value.isNull()) {
@@ -358,14 +380,17 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         return text == null || text.isBlank() ? Optional.empty() : Optional.of(text);
     }
 
+    // 标准化基础播放动作。
     private String normalizePlaybackAction(String rawAction) {
         return normalizePlaybackAction(rawAction, false, false);
     }
 
+    // 标准化可选 state 的播放动作。
     private String normalizePlaybackAction(String rawAction, boolean allowState) {
         return normalizePlaybackAction(rawAction, allowState, false);
     }
 
+    // 标准化播放动作并允许请求型动作。
     private String normalizePlaybackAction(String rawAction, boolean allowState, boolean allowRequestOnly) {
         String action = Optional.ofNullable(rawAction).orElse("").toLowerCase(Locale.ROOT);
         if ("play".equals(action) || "pause".equals(action) || "seek".equals(action)
@@ -376,10 +401,12 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "未知的播放操作。");
     }
 
+    // 判断动作是否会改变播放状态。
     private boolean isPlaybackStateAction(String action) {
         return "play".equals(action) || "pause".equals(action) || "seek".equals(action);
     }
 
+    // 判断动作是否只需要房主手动响应。
     private boolean isRequestOnlyAction(String action) {
         return "danmaku".equals(action) || "danmaku-on".equals(action) || "danmaku-off".equals(action);
     }

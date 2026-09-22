@@ -1,3 +1,4 @@
+// 房间生命周期、成员和播放状态业务服务。
 package com.coview.service;
 
 import com.coview.dto.JoinRequestView;
@@ -45,10 +46,12 @@ public class RoomService {
         this.videoModeDetector = videoModeDetector;
     }
 
+    // 生成一个当前内存中未占用的候选房间号。
     public String generateCandidateRoomId() {
         return newRoomId();
     }
 
+    // 校验输入并创建新的临时房间。
     public RoomSessionResponse createRoom(String requestedRoomId, String displayName, String sourceUrl, String password, String confirmPassword) {
         String roomId = normalizeRoomId(requestedRoomId);
         validateRoomId(roomId);
@@ -67,6 +70,7 @@ public class RoomService {
         return new RoomSessionResponse(room.getId(), owner.getId(), toView(room));
     }
 
+    // 校验密码后登记房客加入申请。
     public JoinRequestView createJoinRequest(String roomId, String displayName, String password) {
         Room room = requireRoom(roomId);
         if (!passwordMatches(room, password)) {
@@ -77,6 +81,7 @@ public class RoomService {
         return toJoinRequestView(room, request, null);
     }
 
+    // 读取单个加入申请的当前状态。
     public JoinRequestView getJoinRequest(String roomId, String requestId) {
         Room room = requireRoom(roomId);
         PendingJoinRequest request = requireJoinRequest(room, requestId);
@@ -84,6 +89,7 @@ public class RoomService {
         return toJoinRequestView(room, request, roomView);
     }
 
+    // 房主查看所有待确认的加入申请。
     public List<JoinRequestView> listPendingJoinRequests(String roomId, String ownerParticipantId) {
         Room room = requireRoom(roomId);
         requireOwner(room, ownerParticipantId);
@@ -96,6 +102,7 @@ public class RoomService {
                 .toList();
     }
 
+    // 房主处理加入申请，批准时创建正式成员身份。
     public JoinRequestView decideJoinRequest(String roomId, String ownerParticipantId, String requestId, boolean approved) {
         Room room = requireRoom(roomId);
         requireOwner(room, ownerParticipantId);
@@ -116,14 +123,17 @@ public class RoomService {
         return toJoinRequestView(room, request, toView(room));
     }
 
+    // 返回指定房间的只读视图。
     public RoomView getRoomView(String roomId) {
         return toView(requireRoom(roomId));
     }
 
+    // 按规范化房间号查找房间。
     public Optional<Room> findRoom(String roomId) {
         return Optional.ofNullable(rooms.get(normalizeRoomId(roomId)));
     }
 
+    // 房主更换来源并重置播放/共享状态。
     public RoomView updateSource(String roomId, String participantId, String sourceUrl) {
         Room room = requireRoom(roomId);
         requireOwner(room, participantId);
@@ -131,6 +141,7 @@ public class RoomService {
         return toView(room);
     }
 
+    // 应用房主发起的播放状态变更。
     public PlaybackState applyPlayback(String roomId, String participantId, String action, double positionSeconds) {
         Room room = requireRoom(roomId);
         Participant participant = room.findParticipant(participantId)
@@ -148,6 +159,7 @@ public class RoomService {
         return next;
     }
 
+    // 更新房主屏幕共享开关。
     public RoomView setScreenShareActive(String roomId, String participantId, boolean active) {
         Room room = requireRoom(roomId);
         requireOwner(room, participantId);
@@ -156,6 +168,7 @@ public class RoomService {
         return toView(room);
     }
 
+    // 处理成员离开，房主离开时关闭房间。
     public boolean leaveRoom(String roomId, String participantId) {
         Room room = requireRoom(roomId);
         Participant participant = room.findParticipant(participantId)
@@ -169,18 +182,21 @@ public class RoomService {
         return false;
     }
 
+    // 校验并返回房间成员。
     public Participant requireParticipant(String roomId, String participantId) {
         Room room = requireRoom(roomId);
         return room.findParticipant(participantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "成员身份无效，请重新加入房间。"));
     }
 
+    // 刷新成员在线时间。
     public void touchParticipant(String roomId, String participantId) {
         findRoom(roomId)
                 .flatMap(room -> room.findParticipant(participantId))
                 .ifPresent(Participant::touch);
     }
 
+    // 查找房间，不存在时抛出 404。
     public Room requireRoom(String roomId) {
         Room room = rooms.get(normalizeRoomId(roomId));
         if (room == null) {
@@ -190,12 +206,14 @@ public class RoomService {
         return room;
     }
 
+    // 判断指定成员是否仍在房间内。
     public boolean isRoomParticipant(String roomId, String participantId) {
         return findRoom(roomId)
                 .flatMap(room -> room.findParticipant(participantId))
                 .isPresent();
     }
 
+    // 将内部房间模型转换为前端视图。
     public RoomView toView(Room room) {
         return new RoomView(
                 room.getId(),
@@ -218,12 +236,14 @@ public class RoomService {
         );
     }
 
+    // 定时清理长时间无活动的房间。
     @Scheduled(fixedDelay = 600_000)
     public void cleanupExpiredRooms() {
         Instant cutoff = Instant.now().minus(ROOM_TTL);
         rooms.entrySet().removeIf(entry -> entry.getValue().getLastActiveAt().isBefore(cutoff));
     }
 
+    // 查找加入申请，不存在时抛出 404。
     private PendingJoinRequest requireJoinRequest(Room room, String requestId) {
         PendingJoinRequest request = joinRequests.getOrDefault(room.getId(), Map.of()).get(requestId);
         if (request == null) {
@@ -232,6 +252,7 @@ public class RoomService {
         return request;
     }
 
+    // 将加入申请转换为前端可读状态。
     private JoinRequestView toJoinRequestView(Room room, PendingJoinRequest request, RoomView roomView) {
         String message = switch (request.getStatus()) {
             case PENDING -> "等待房主确认。";
@@ -250,6 +271,7 @@ public class RoomService {
         );
     }
 
+    // 封装来源判定异常为 400 响应。
     private SourceDecision decide(String sourceUrl) {
         try {
             return videoModeDetector.decide(sourceUrl);
@@ -258,12 +280,14 @@ public class RoomService {
         }
     }
 
+    // 校验当前成员是否为房主。
     private void requireOwner(Room room, String participantId) {
         if (participantId == null || !room.getOwnerId().equals(participantId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有房主可以控制这个房间。");
         }
     }
 
+    // 循环生成未被占用的房间号。
     private String newRoomId() {
         String id;
         do {
@@ -272,10 +296,12 @@ public class RoomService {
         return id;
     }
 
+    // 生成新的成员 ID。
     private String newParticipantId() {
         return randomToken(16);
     }
 
+    // 使用限定字符集生成随机令牌。
     private String randomToken(int length) {
         StringBuilder builder = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -284,6 +310,7 @@ public class RoomService {
         return builder.toString();
     }
 
+    // 清理显示名并提供默认值。
     private String cleanName(String displayName, String fallback) {
         if (displayName == null || displayName.isBlank()) {
             return fallback;
@@ -292,6 +319,7 @@ public class RoomService {
         return trimmed.length() > 40 ? trimmed.substring(0, 40) : trimmed;
     }
 
+    // 统一房间号格式并补齐前缀。
     private String normalizeRoomId(String roomId) {
         if (roomId == null) {
             return "";
@@ -303,12 +331,14 @@ public class RoomService {
         return clean;
     }
 
+    // 校验房间号是否符合 LJX-xxxxxx 格式。
     private void validateRoomId(String roomId) {
         if (!ROOM_ID_PATTERN.matcher(roomId).matches()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "房间号格式不正确，请重新生成房间号。");
         }
     }
 
+    // 校验密码和二次确认是否有效。
     private void validatePasswordPair(String password, String confirmPassword) {
         if (password == null || password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请填写房间密码。");
@@ -326,6 +356,7 @@ public class RoomService {
         }
     }
 
+    // 比对输入密码与房间密码哈希。
     private boolean passwordMatches(Room room, String password) {
         if (password == null || password.isBlank()) {
             return false;
@@ -333,6 +364,7 @@ public class RoomService {
         return room.getPasswordHash().equals(hashPassword(password));
     }
 
+    // 使用 SHA-256 保存密码摘要。
     private String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

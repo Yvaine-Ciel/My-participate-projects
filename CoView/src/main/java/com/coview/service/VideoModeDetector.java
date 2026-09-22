@@ -1,3 +1,4 @@
+// 视频来源可播放性与模式判定服务。
 package com.coview.service;
 
 import com.coview.model.SourceDecision;
@@ -59,6 +60,7 @@ public class VideoModeDetector {
                 .build();
     }
 
+    // 根据 URL、平台和响应类型选择播放模式。
     public SourceDecision decide(String rawSourceUrl) {
         URI uri = normalize(rawSourceUrl);
         String normalized = uri.toString();
@@ -82,6 +84,7 @@ public class VideoModeDetector {
                 .orElseGet(() -> SourceDecision.screenShare(normalized, "暂时无法确认该资源可直接播放，建议使用屏幕共享。", null));
     }
 
+    // 根据 Content-Type 判断是否可直接播放。
     private SourceDecision decideByContentType(String normalized, String contentType) {
         String cleanType = contentType.toLowerCase(Locale.ROOT);
         if (cleanType.startsWith("video/")
@@ -97,6 +100,7 @@ public class VideoModeDetector {
         return SourceDecision.screenShare(normalized, "该资源类型不是浏览器可直接播放的视频。", contentType);
     }
 
+    // 使用 HEAD 请求探测远端资源类型。
     private Optional<String> probeWithHead(URI uri) {
         try {
             HttpRequest request = HttpRequest.newBuilder(uri)
@@ -115,6 +119,7 @@ public class VideoModeDetector {
         return Optional.empty();
     }
 
+    // 从用户输入或分享文案中规范化出 URI。
     private URI normalize(String rawSourceUrl) {
         if (rawSourceUrl == null || rawSourceUrl.isBlank()) {
             throw new IllegalArgumentException("请填写视频地址。");
@@ -132,6 +137,7 @@ public class VideoModeDetector {
         }
     }
 
+    // 提取输入文本中的第一个网址。
     private String extractFirstUrl(String rawText) {
         Matcher matcher = URL_PATTERN.matcher(rawText);
         if (matcher.find()) {
@@ -140,6 +146,7 @@ public class VideoModeDetector {
         return rawText;
     }
 
+    // 去掉复制链接末尾常见标点。
     private String trimTrailingUrlJunk(String url) {
         String clean = url.trim();
         while (!clean.isEmpty() && "，。！？；、,.)]}>\"'".indexOf(clean.charAt(clean.length() - 1)) >= 0) {
@@ -148,21 +155,25 @@ public class VideoModeDetector {
         return clean;
     }
 
+    // 判断是否是 http/https 地址。
     private boolean isHttpUrl(URI uri) {
         String scheme = Optional.ofNullable(uri.getScheme()).orElse("").toLowerCase(Locale.ROOT);
         return scheme.equals("http") || scheme.equals("https");
     }
 
+    // 判断路径是否带有常见直链媒体后缀。
     private boolean hasDirectMediaExtension(URI uri) {
         String path = Optional.ofNullable(uri.getPath()).orElse("").toLowerCase(Locale.ROOT);
         return DIRECT_MEDIA_EXTENSIONS.stream().anyMatch(path::endsWith);
     }
 
+    // 判断是否属于常见受限视频平台。
     private boolean isProtectedPlatform(String host) {
         return PROTECTED_PLATFORM_DOMAINS.stream()
                 .anyMatch(domain -> host.equals(domain) || host.endsWith("." + domain));
     }
 
+    // 拦截本机和内网地址，避免房客无法访问。
     private boolean isPrivateOrLocalHost(String host) {
         if (host.equals("localhost") || host.endsWith(".localhost") || host.equals("0.0.0.0") || host.equals("::1")) {
             return true;
